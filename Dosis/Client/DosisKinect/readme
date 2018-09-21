@@ -1,4 +1,5 @@
 Install SimpleOpenNI library, this is the library to kinect for processing. 
+You need to install drivers to Kinect V1 https://www.microsoft.com/en-us/download/confirmation.aspx?id=40278
 
 Install MSAfluids library, this library is located in the Dosis/ProcessingLibraryMSAfluids file.
 
