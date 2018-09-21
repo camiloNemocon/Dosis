@@ -3,12 +3,16 @@
 //By. Camilo Nemocon
 
 //-----------------------Librerias-------------------
+import oscP5.*;
+import netP5.*;
 import cc.arduino.*;
 import org.firmata.*;
 import processing.serial.*;
 import processing.serial.*;
 
 //------------------------Variables-------------------
+OscP5 oscP5;
+NetAddress dosisConection;
 
 MsaFluids msaFluids;
 
@@ -35,6 +39,12 @@ int y=370;
 
 //arreglo con los mensajes enviados
 ArrayList<String> codigos;
+
+//envia los datos del mouse 
+boolean sendComunicacionMouse = false;
+
+//envia los datos del mouse y pmouse
+boolean sendComunicacionMouse2 = false;
 
 //a partir de la palabra detectada escrita por el usuario se determina la instruccion a colocar
 int palabraInstruccion = 0;
@@ -81,6 +91,13 @@ void setup()
   
   noCursor();
   
+  // start oscP5, listening for incoming messages at port 12000 
+  oscP5 = new OscP5(this,12000);
+  
+  //se conecta al servidor por la dirección ip,port
+  // dosisConection = new NetAddress("192.168.0.101",12000);
+  dosisConection = new NetAddress("localhost",12000);
+  
   //tipografia
   fuente = loadFont("AgencyFB-Reg-48.vlw");
   //tamaño de la fuente
@@ -105,11 +122,8 @@ void setup()
   // imprime el puerto en el que esta conectado arduino
   println(Arduino.list());
   
-  //puerto serial por donde le va a enviar los datos a arduino para Windows
+  //puerto serial por donde le va a enviar los datos a arduino
   arduino = new Arduino(this, Arduino.list()[0], 57600);
-  
-  //puerto serial por donde le va a enviar los datos a arduino para MAC
-  //arduino = new Arduino(this, "/dev/cu.usbmodem1411", 57600); 
  
   //le digo que todos los pines sean de salida
   for (int i = 0; i <= 22; i++)
@@ -180,10 +194,10 @@ void draw()
   { 
         arduino.digitalWrite( i, Arduino.HIGH );
         arduino.analogWrite( i, 255 );
-  }
+  }*/
   
   //test pines letras
-  for( int i = 11; i < 22; i++ ) 
+  /*for( int i = 11; i < 22; i++ ) 
   { 
         arduino.digitalWrite( i, Arduino.HIGH );
   }*/
@@ -282,7 +296,55 @@ void keyPressed()
       //mensaje en el orden correcto de caracteres para enviar
       buff=buff+k;
       
-      if(buff.equals("once") || buff.equals("loop") || buff.equals("pararLoop"))
+      if(buff.equals("palabras"))
+      {
+        palabraInstruccion = 1; 
+      }
+      else if(buff.equals("volumen"))
+      {
+        palabraInstruccion = 2; 
+      }
+      else if(buff.equals("barras"))
+      {
+        palabraInstruccion = 3; 
+      }
+      else if(buff.equals("particulas"))
+      {
+        palabraInstruccion = 4; 
+      }
+      else if(buff.equals("sistemaP"))
+      {
+        palabraInstruccion = 5; 
+      }
+      else if(buff.equals("fondo"))
+      {
+        palabraInstruccion = 6; 
+      }
+      else if(buff.equals("circulos"))
+      {
+        palabraInstruccion = 7; 
+      }
+      else if(buff.equals("gusano"))
+      {
+        palabraInstruccion = 8; 
+      }
+      else if(buff.equals("pirulina"))
+      {
+        palabraInstruccion = 9; 
+      }
+      else if(buff.equals("imagen3d"))
+      {
+        palabraInstruccion = 10; 
+      }
+      else if(buff.equals("fluidos"))
+      {
+        palabraInstruccion = 11; 
+      }
+      else if(buff.equals("borrar"))
+      {
+        palabraInstruccion = 12; 
+      }
+      else if(buff.equals("once") || buff.equals("loop") || buff.equals("pararLoop"))
       {
         palabraInstruccion = 13; 
       }
@@ -331,8 +393,73 @@ void instrucciones()
   rect(0,600,width,height);
   
   fill(#550F90);
-  
-  if(palabraInstruccion == 13)
+  if(palabraInstruccion == 1)
+  {
+    text("palabras(String,String,String,String)",10,630); 
+    text("palabras(1) => tamaño de la letra = audioInput",10,670);
+    text("palabras(0) => tamaño de la letra = fija",10,710);
+  }
+  else if(palabraInstruccion == 2)
+  {
+    text("volumen(float)",10,630);
+    text("audio input =>  0.0  -  1.0 ",10,670);
+  }
+  else if(palabraInstruccion == 3)
+  {
+    text("barras(int)",10,630);
+    text("4 tipos de Buffer =>  1  -  4",10,670);
+  }
+  else if(palabraInstruccion == 4)
+  {
+    text("particulas(int)",10,630);
+    text("-1 => pos mouse        ||  -2 => pos random",10,660);
+    text("-4 => audioReactive   ||  -3 => NO audioReactive",10,695);
+    text("0 =>  varios                ||  >0 => tamaño",10,730);
+  }
+  else if(palabraInstruccion == 5)
+  {
+    text("sistemaP(String)",10,630);
+  }
+  else if(palabraInstruccion == 6)
+  {
+    text("fondo(int)",10,630);
+    text("5 tipos de fondo =>  1  -  5",10,660);
+    text("fondo(0) => fondo(int,int,int)",10,695);
+    text("fondoAlpha(int) => 0 > alpha < 255 ",10,730);
+  }
+  else if(palabraInstruccion == 7)
+  {
+    text("circulos()",10,630);
+  }
+  else if(palabraInstruccion == 8)
+  {
+    text("gusano(int)",10,630);
+    text("int =>  longitud del gusano",10,670);
+    text("gusano(-1) => pos mouse",10,710);
+  }
+  else if(palabraInstruccion == 9)
+  {
+    text("pirulina() => pos mouse",10,630);
+  }
+  else if(palabraInstruccion == 10)
+  {
+    text("imagen3d(int)",10,630);
+    text("0 > int <= 2 =>  cambia la imagen",10,670);
+  }
+  else if(palabraInstruccion == 11)
+  {
+    text("fluidos() => mov mouse",10,630);
+  }
+  else if(palabraInstruccion == 12)
+  {
+    text("borrar",10,630);
+    text("borrarBarras()            borrarPalabras()",10,655);
+    text("borrarParticulas()      borrarSistemaP()",10,680);
+    text("pararCirculos()           borrarGusano()",10,705);
+    text("borrarPirulina()          borrarImagen3d()",10,730);
+    text("borrarFluidos() ",10,755);
+  }
+  else if(palabraInstruccion == 13)
   {
     text("onceArduino() => envia la data una vez",10,630);
     text("loopArduino() => envia la data todo el tiempo",10,660);
@@ -346,11 +473,36 @@ void keyReleased()
   //cuando opriman enter
   if(keyCode==ENTER)
   {
-   
+    //crea un mensaje osc
+    OscMessage myMessage = new OscMessage("/comunicacion");
+
+    //adiciona el string al mensaje osc
+    myMessage.add(buff); 
     //adiciona el string al arreglo de mensajes enviados para dibujarlos
     codigos.add(buff);   
         
-   
+    if(buff.equals("particulas(-1)") || buff.equals("sistemaP(-1)") || buff.equals("gusano(-1)") || buff.equals("pirulina()"))
+    {
+      sendComunicacionMouse = true;
+    }
+    else
+    {
+      sendComunicacionMouse = false; 
+    }
+    
+    if(buff.equals("fluidos()"))
+    {
+      sendComunicacionMouse2 = true;
+    }
+    else
+    {
+      sendComunicacionMouse2 = false; 
+    }
+
+    //envia el mensaje osc
+    oscP5.send(myMessage, dosisConection); 
+    
+    
     if(buff.equals("pararLoopArduino()"))
     {
       activarArduino = false;
@@ -385,7 +537,8 @@ void keyReleased()
     {
       datosArduino();
     }
-       
+    
+    
     
     //limpia los strings del mensaje que se envia y del que se aparece en el canvas
     buff = "";
@@ -397,17 +550,26 @@ void keyReleased()
     y+=30;    
   }
   
-  
   if(keyCode==RIGHT)
-  {   
-      palabraInstruccion = 13;
+  {
+    palabraInstruccion ++;
+    
+    if(palabraInstruccion > 13)
+    {
+      palabraInstruccion = 0;
+    }
   }
   
   if(keyCode==LEFT)
   {
-      palabraInstruccion = 13;
-  }
+    palabraInstruccion --;
     
+    if(palabraInstruccion < 0)
+    {
+      palabraInstruccion = 13;
+    }
+  }
+  
    
 }
 
@@ -504,5 +666,29 @@ void mouseMoved()
       msaFluids.addForce(mouseNormX, mouseNormY, mouseVelX, mouseVelY);
     }
     
-   
+    if(sendComunicacionMouse == true)
+    {
+      //crea un mensaje osc
+      OscMessage myMessage1 = new OscMessage("/comunicacionMouse");
+      
+      myMessage1.add(mouseX);
+      myMessage1.add(mouseY);
+        
+      //envia el mensaje osc
+      oscP5.send(myMessage1, dosisConection);  
+    }
+    
+    if(sendComunicacionMouse2 == true)
+    {
+      //crea un mensaje osc
+      OscMessage myMessage2 = new OscMessage("/comunicacionMouse2");
+      
+      myMessage2.add(mouseX);
+      myMessage2.add(mouseY);
+      myMessage2.add(pmouseX);
+      myMessage2.add(pmouseY);
+        
+      //envia el mensaje osc
+      oscP5.send(myMessage2, dosisConection);  
+    }
 }
