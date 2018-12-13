@@ -407,6 +407,12 @@ void keyReleased()
   {
       palabraInstruccion = 13;
   }
+  
+  if(keyCode == UP)
+  tiempoEspera = tiempoEspera + 100; 
+  
+  if(keyCode == DOWN)
+  tiempoEspera = tiempoEspera - 100; 
     
    
 }
