@@ -61,9 +61,6 @@ int tiempoInicio = 0;
 int totalBytes = 12;
 int contadorBytes = 0;
 
-int[] values = { Arduino.LOW, Arduino.LOW, Arduino.LOW, Arduino.LOW,
- Arduino.LOW, Arduino.LOW, Arduino.LOW, Arduino.LOW, Arduino.LOW,
- Arduino.LOW, Arduino.LOW, Arduino.LOW, Arduino.LOW, Arduino.LOW };
  
  String msnUnidoArduino="";
  
@@ -72,6 +69,18 @@ int[] values = { Arduino.LOW, Arduino.LOW, Arduino.LOW, Arduino.LOW,
  
  int tempContador = 0;
  boolean activarArduino = false;
+ 
+ //tiempo en que se envian los datos a Arduino para que prendan los pines al tiempo
+ int timeSend = 100;
+ int timeSendInicio = 0;
+ 
+ //genera el envio de datosa Arduino para que prendan los pines al tiempo
+ boolean enviarDatos2 = false;
+ 
+ int[] values = { Arduino.LOW, Arduino.LOW, Arduino.LOW, Arduino.LOW,
+ Arduino.LOW, Arduino.LOW, Arduino.LOW, Arduino.LOW, Arduino.LOW,
+ Arduino.LOW, Arduino.LOW, Arduino.LOW, Arduino.LOW, Arduino.LOW };
+
  
 //------------------------Setup-------------------
 void setup() 
@@ -175,6 +184,11 @@ void draw()
     enviarArduino();
   }
   
+  if(enviarDatos2==true)
+  {
+    enviarArduinoSameTime(timeSend);
+  }
+  
   //test pines numeros
   /*for( int i = 2; i < 10; i++ ) 
   { 
@@ -187,8 +201,6 @@ void draw()
   { 
         arduino.digitalWrite( i, Arduino.HIGH );
   }*/
-   
-   
 }
 
 
@@ -199,7 +211,7 @@ void enviarArduino()
   if (millis() - tiempoInicio > tiempoEspera) 
   {
     arduino.digitalWrite(datoSend[contadorBytes], Arduino.HIGH);
-    
+        
     if( datoSend[contadorBytes] < 19  )
     {
        arduino.analogWrite( datoSend[contadorBytes], 255 );
@@ -232,7 +244,6 @@ void enviarArduino()
   }
  
 }
-
 
 
 void keyPressed()
@@ -282,7 +293,7 @@ void keyPressed()
       //mensaje en el orden correcto de caracteres para enviar
       buff=buff+k;
       
-      if(buff.equals("once") || buff.equals("loop") || buff.equals("pararLoop"))
+      if(buff.equals("once") || buff.equals("loop") || buff.equals("parar") ||  buff.equals("same"))
       {
         palabraInstruccion = 13; 
       }
@@ -336,7 +347,8 @@ void instrucciones()
   {
     text("onceArduino() => envia la data una vez",10,630);
     text("loopArduino() => envia la data todo el tiempo",10,660);
-    text("pararLoopArduino() => para el envio de la data",10,695);
+    text("pararArduino() => para el envio de la data",10,690);
+    text("sameTimeArduino(int(time)) => pines2,4,7,8,12,A0...",10,720);
   }
   
 }
@@ -351,10 +363,11 @@ void keyReleased()
     codigos.add(buff);   
         
    
-    if(buff.equals("pararLoopArduino()"))
+    if(buff.equals("pararArduino()"))
     {
       activarArduino = false;
       enviarDatos = false;
+      enviarDatos2 = false;
       
       for (int i = 0; i <= 22; i++)
       {
@@ -369,7 +382,8 @@ void keyReleased()
       buff = "";
       buff1 = "";
       buff2 = "";
-      datosArduino();  
+      datosArduino(0);  
+      timeSend=0;
     }
     
     if(buff.equals("onceArduino()"))
@@ -377,13 +391,42 @@ void keyReleased()
       buff = "";
       buff1 = "";
       buff2 = "";
-      datosArduino();
+      datosArduino(0);
+      timeSend=0;
       enviarDatosEnter = true;
     }
     
+    if(!buff.equals(""))
+    {
+      String temp = "";
+      String[] mensaje;
+      boolean mensajeValido = false;
+  
+      if(buff.substring(buff.length()-1).equals(")"))
+      {
+        temp = buff.substring(0,buff.length()-1);    
+        mensajeValido = true;
+      }
+      
+       if(mensajeValido == true )
+        {
+            mensaje = split(temp,'(');                  
+            
+            if (mensaje[0].equals("sameTimeArduino"))
+            {
+              timeSend = int(mensaje[1]);
+              buff = "";
+              buff1 = "";
+              buff2 = "";
+              datosArduino(int(mensaje[1]));               
+            }
+        }
+    }
+    
+
     if(!buff.equals("") && activarArduino == true)
     {
-      datosArduino();
+      datosArduino(timeSend);
     }
        
     
@@ -418,9 +461,9 @@ void keyReleased()
 }
 
 
-void datosArduino()
+void datosArduino(int sendTime)
 {    
-   if(!buff2.equals(""))      
+  if(!buff2.equals(""))      
   {    
    //adiciona el string al arreglo de mensajes enviados para enviarlos a Arduino
    codigosArduino.add(buff2);
@@ -491,11 +534,117 @@ void datosArduino()
     contadorBytes = 0;
     
     
-    enviarDatos = true;
+    if(sendTime==0)
+    {
+      enviarDatos = true;
+    }
+    else
+    {
+      enviarDatos2 = true;
+    }
   }
   
   activarArduino = true;
 }
+
+
+void enviarArduinoSameTime(int timeSend)
+{   
+  int tempTiempo = millis() - timeSendInicio;
+   
+  if(totalBytes > 0 && tempTiempo >= timeSend/2 && tempTiempo < timeSend)
+  {
+    for (int i = 0; i <= 22; i++)
+    {
+      //apago todos lo pines
+      arduino.digitalWrite(i, Arduino.LOW);
+      arduino.analogWrite( i, 0 );
+    }
+  }
+  
+  if(totalBytes > 0 && tempTiempo >= timeSend)
+  {       
+     
+    if(totalBytes == 1)
+    {
+      println(datoSend[0]);
+      arduino.digitalWrite(datoSend[0], Arduino.HIGH);    
+    }
+    else if(totalBytes == 2)
+    {
+      arduino.digitalWrite(datoSend[0], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[1], Arduino.HIGH);
+    }
+    else if(totalBytes == 3)
+    {
+      arduino.digitalWrite(datoSend[0], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[1], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[2], Arduino.HIGH);
+    }
+    else if(totalBytes == 4)
+    {
+      arduino.digitalWrite(datoSend[0], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[1], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[2], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[3], Arduino.HIGH);
+    }
+    else if(totalBytes == 5)
+    {
+      arduino.digitalWrite(datoSend[0], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[1], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[2], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[3], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[4], Arduino.HIGH);
+    }
+    else if(totalBytes == 6)
+    {
+      arduino.digitalWrite(datoSend[0], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[1], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[2], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[3], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[4], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[5], Arduino.HIGH);
+    }
+    else if(totalBytes == 7)
+    {
+      arduino.digitalWrite(datoSend[0], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[1], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[2], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[3], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[4], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[5], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[6], Arduino.HIGH);
+    }
+    else if(totalBytes == 8)
+    {
+      arduino.digitalWrite(datoSend[0], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[1], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[2], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[3], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[4], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[5], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[6], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[7], Arduino.HIGH);
+    }
+    else if(totalBytes == 9)
+    {
+      arduino.digitalWrite(datoSend[0], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[1], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[2], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[3], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[4], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[5], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[6], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[7], Arduino.HIGH);
+      arduino.digitalWrite(datoSend[8], Arduino.HIGH);
+    }
+       
+    timeSendInicio = millis();
+  }
+  
+  
+}
+
 
   
 void mouseMoved() 
@@ -508,7 +657,6 @@ void mouseMoved()
       float mouseVelY = (mouseY - pmouseY) * invHeight;
   
       msaFluids.addForce(mouseNormX, mouseNormY, mouseVelX, mouseVelY);
-    }
-    
+    } 
    
 }
