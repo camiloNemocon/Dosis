@@ -1,10 +1,14 @@
-Install SimpleOpenNI library, this is the library to kinect for processing. 
+
 You need to install drivers to Kinect V1 https://www.microsoft.com/en-us/download/confirmation.aspx?id=40278
 
+Install SimpleOpenNI library, this is the library to kinect for processing. 
+copy the SimpleOpenNI Folder into Processing folder->modes->java->libraries
+
 Install MSAfluids library, this library is located in the Dosis/ProcessingLibraryMSAfluids file.
+copy the MSAFluid Folder into Processing folder->modes->java->libraries
 
-Install the library OSC in Processing, to do this, in Processing you need go 
-
+Install the library OSC in Processing, to do this, in Processing you need: 
+Open Processing
 Skecth -> import library -> Add to library
 In filter -> oscP5
 Close Processing 
