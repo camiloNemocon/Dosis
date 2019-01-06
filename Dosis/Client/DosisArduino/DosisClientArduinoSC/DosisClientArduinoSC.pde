@@ -8,8 +8,14 @@ import org.firmata.*;
 import processing.serial.*;
 import processing.serial.*;
 
+import oscP5.*;
+import netP5.*;
 
 //------------------------Variables-------------------
+OscP5 oscP5;
+NetAddress dosisConection;
+NetAddress superColliderConection;
+
 MsaFluids msaFluids;
 
 Arduino arduino;
@@ -55,6 +61,10 @@ boolean enviarDatos = false;
 boolean enviarDatosEnter = false;
 
 //manejo del envio de los datos a arduino cada medio segundo
+int tiempoEsperaSC = 500 ; 
+int tiempoInicioSC = 0;
+
+//manejo del envio de los datos a arduino cada medio segundo
 int tiempoEspera = 500 ; 
 int tiempoInicio = 0;
 
@@ -76,30 +86,52 @@ int contadorBytes = 0;
  //genera el envio de datos a Arduino para que prendan los pines al tiempo usando la funcion SameTime
  boolean enviarDatos2 = false;
  
- //determina si usa el teclado para activar el arduino en vivo
- boolean tecladoLive = false;
+ //envia los datos del mouse a Dosis server
+boolean sendComunicacionMouse = false;
 
- //Tecla del teclado para tecladoLive
- String TeclaLive;
+//envia los datos del mouse y pmouse
+boolean sendComunicacionMouse2 = false;
 
- //variable que determina si se envia loopArduino o sameTime o TimeStart
- int tempSendParameter = 0;
+//envia los datos del mouse a SuperCollider
+boolean sendComunicacionMouseSC = false;
 
- //genera el envio de datos a Arduino para que prendan los pines al tiempo usando la funcion TimeStart
- boolean enviarDatos3 = false;
- boolean empezar3 = false;
- // tiempo para TimeStart
- int tiempoReiniciar3 = 0;
+//envia los datos escritos a SuperCollider
+boolean sendComunicacionCodSC = false;
 
- //tiempo para same Time
- int[] tiempoReiniciar;
- boolean empezar = false;
+//envia el mensaje del mouse a super collider cada medio segundo
+boolean enviaMsn = true;
 
- //tiempo que mantiene prendido los pines y que se reinicia 
- int[] tiempoReiniciarV2;
+//si se envia el mensaje SC 
+boolean codSC = false; 
+boolean mensajeValido = false;
 
- //manejo del envio de los datos a arduino cada tanto tiempo, donde este tiempo se puede modificar con las flechas
- int tiempoFlechas = 0;
+//guarda el mensaje que va a enviar a SC
+int msnSC = 0;
+
+//determina si usa el teclado para activar el arduino en vivo
+boolean tecladoLive = false;
+
+//Tecla del teclado para tecladoLive
+String TeclaLive;
+
+//variable que determina si se envia loopArduino o sameTime o TimeStart
+int tempSendParameter = 0;
+
+//genera el envio de datos a Arduino para que prendan los pines al tiempo usando la funcion TimeStart
+boolean enviarDatos3 = false;
+boolean empezar3 = false;
+// tiempo para TimeStart
+int tiempoReiniciar3 = 0;
+
+//tiempo para same Time
+int[] tiempoReiniciar;
+boolean empezar = false;
+
+//tiempo que mantiene prendido los pines y que se reinicia 
+int[] tiempoReiniciarV2;
+
+//manejo del envio de los datos a arduino cada tanto tiempo, donde este tiempo se puede modificar con las flechas
+int tiempoFlechas = 0;
 
  
 //------------------------Setup-------------------
@@ -123,7 +155,8 @@ void setup()
   
   invWidth = 1.0f/width ;
   invHeight = 1.0f/( height/2 );
-  
+  //invHeight = 1.0f/( height/2 )-10;
+    
   //inicializa la visual de fluidos
   msaFluids = new MsaFluids();
   
@@ -148,6 +181,16 @@ void setup()
     arduino.digitalWrite(i, Arduino.LOW);
     arduino.analogWrite( i, 0 );
   }
+  
+  // start oscP5, listening for incoming messages at port 12000 
+  oscP5 = new OscP5(this,12000);
+  
+  //se conecta al servidor por la dirección ip,port
+  // dosisConection = new NetAddress("192.168.0.101",12000);
+  dosisConection = new NetAddress("localhost",12000);
+  
+  //superColliderConection = new NetAddress("172.16.24.80",33333);
+  superColliderConection = new NetAddress("localhost",33333);
   
   tiempoReiniciar = new int [9];    
   tiempoReiniciarV2 = new int [9];  
@@ -328,7 +371,11 @@ void keyPressed()
         if(buff.equals("Once") || buff.equals("Loop") || buff.equals("PararA") ||  buff.equals("Same") ||  buff.equals("TimeS"))
         {
           palabraInstruccion = 13; 
-        }        
+        }      
+        else if(buff.equals("Super"))
+        {
+          palabraInstruccion = 12; 
+        }
         else if(buff.equals("Tecla")|| buff.equals("PararT"))
         {
           palabraInstruccion = 14; 
@@ -391,6 +438,11 @@ void instrucciones()
     text("SameTime(int(timeStart)|int(timeOn))",10,720);
     text("TimeStart(int(timeStart)|int(timeOn))",10,750);
   }
+  else if(palabraInstruccion == 12)
+  {
+    text("SuperColliderMouse() =>envia la pos mouse (x,y)",10,630);
+    text("SuperColliderCod(int) =>envia int a SuperCollider",10,660);
+  }
   else if(palabraInstruccion == 14)
   {
     text("Teclado() =>Activa Arduino con las teclas",10,630);
@@ -408,9 +460,16 @@ void keyReleased()
   
   //cuando opriman enter
   if(keyCode==ENTER)
-  {    
+  {
+    //crea un mensaje osc
+    OscMessage myMessage = new OscMessage("/comunicacion");
+
+    //adiciona el string al mensaje osc
+    myMessage.add(buff); 
+   
     //adiciona el string al arreglo de mensajes enviados para dibujarlos
-    codigos.add(buff);         
+    codigos.add(buff);   
+           
    
     if(buff.equals("PararArduino()"))
     {
@@ -516,6 +575,54 @@ void keyReleased()
       }
     }
     
+    
+    if(buff.equals("SuperColliderMouse()"))
+    {
+      sendComunicacionMouseSC = true;
+      sendComunicacionMouse = true;
+    }
+    else
+    {
+      //sendComunicacionMouseSC = false;
+      //sendComunicacionMouse = false; 
+    }
+    
+    if(buff.contains("SuperColliderCod("))
+    {      
+      String temp = "";
+      String[] mensaje;
+      
+      if(buff.substring(buff.length()-1).equals(")"))
+      {
+        temp = buff.substring(0,buff.length()-1);    
+        mensajeValido = true;
+      }
+  
+      if(mensajeValido == true )
+      {
+          mensaje = split(temp,'(');      
+            
+          //SI LLEGA ESA PALABRA ENTONCES VA A COLOCAR LAS PALABRAS
+          if (mensaje[0].equals("SuperColliderCod"))
+          {
+            if(int(mensaje[1])>0)
+            {
+              msnSC = int(mensaje[1]);
+            }
+            else
+            {
+               msnSC = 0;
+            }
+            sendComunicacionCodSC = true;
+          }
+      }
+  
+    }   
+    
+    //envia el mensaje osc
+    oscP5.send(myMessage, dosisConection); 
+       
+    
     //limpia los strings del mensaje que se envia y del que se aparece en el canvas
     buff = "";
     buff1 = "";
@@ -533,7 +640,7 @@ void keyReleased()
     
     if(palabraInstruccion > 14)
     {
-      palabraInstruccion = 13;
+      palabraInstruccion = 12;
     }
   }
   
@@ -541,7 +648,7 @@ void keyReleased()
   {
      palabraInstruccion --;
     
-    if(palabraInstruccion < 13)
+    if(palabraInstruccion < 12)
     {
       palabraInstruccion = 14;
     }
@@ -552,6 +659,11 @@ void keyReleased()
     if(enviarDatos==true)
     {
       tiempoEspera = tiempoEspera + 50; 
+    }
+    
+    if(sendComunicacionMouseSC == true)
+    {
+      tiempoEsperaSC = tiempoEsperaSC + 50; 
     }
     
     if(enviarDatos2 == true || enviarDatos3 == true)
@@ -567,11 +679,35 @@ void keyReleased()
       tiempoEspera = tiempoEspera - 50; 
     }
     
+    if(sendComunicacionMouseSC == true)
+    {
+      tiempoEsperaSC = tiempoEsperaSC - 50; 
+    }
+    
     if(enviarDatos2 == true || enviarDatos3 == true)
     {
       tiempoFlechas = tiempoFlechas - 1;
     }
   }
+  
+  if(sendComunicacionCodSC == true)
+  {
+    //crea un mensaje osc
+    OscMessage myMessage3 = new OscMessage("/DosisComunicacionSC");
+    
+    myMessage3.add(msnSC);
+      
+    //envia el mensaje osc a supercollider
+    oscP5.send(myMessage3, superColliderConection);  
+    
+    //println("mensaje  : "+msnSC);
+    
+    //apenas envie el mensaje deje de enviar
+    sendComunicacionCodSC = false;
+    mensajeValido = false;
+  }
+    
+   
 }
 
 void stopArduino()
@@ -781,6 +917,8 @@ void enviarArduinoTimeStart(String timeSend)
     {    
       tiempoEmpezar = (((int(mensajeTimeSend[0])*1000)-(millis()-tiempoReiniciar3))/1000)+tiempoFlechas;
       
+      //println(tiempoEmpezar);
+                         
       if(tiempoEmpezar < 0)
       {       
         for(int j=0; j<mensajeTimePrendido.length; j++)
@@ -790,15 +928,20 @@ void enviarArduinoTimeStart(String timeSend)
           
           //corre el tiempo de prendido de cada pin
           tiempoPrendido[j] = ((int(mensajeTimePrendido[j])*1000)-(millis()-tiempoReiniciarV2[j]))/1000;
-                   
+          
+          //println(j+" -------------- "+tiempoPrendido[j]);
+         
           if(tiempoPrendido[j] < 0)
           {
             arduino.digitalWrite(datoSend[j], Arduino.LOW); 
           }
           
+           //println(idMayor+" num mayor");
+          
           //apenas acabe el tiempo del pin con mayorTiempoPrendido entonces reinicia el tiempo de todo para que prenda
           if(tiempoPrendido[j] < 0 && j == idMayor)
           {
+            //println(j+" +++++++++++++++++++++++++++++++++++++++++++++++++++++");
             tiempoReiniciar3 = millis();
           }
         }
@@ -834,5 +977,59 @@ void mouseMoved()
       float mouseVelY = (mouseY - pmouseY) * invHeight;
   
       msaFluids.addForce(mouseNormX, mouseNormY, mouseVelX, mouseVelY);
-    }   
+    } 
+    
+    if(sendComunicacionMouse == true)
+    {
+      //crea un mensaje osc
+      OscMessage myMessage1 = new OscMessage("/comunicacionMouse");
+      
+      myMessage1.add(mouseX);
+      myMessage1.add(mouseY);
+        
+      //envia el mensaje osc
+      oscP5.send(myMessage1, dosisConection);  
+    }
+    
+    if(sendComunicacionMouse2 == true)
+    {
+      //crea un mensaje osc
+      OscMessage myMessage2 = new OscMessage("/comunicacionMouse2");
+      
+      myMessage2.add(mouseX);
+      myMessage2.add(mouseY);
+      myMessage2.add(pmouseX);
+      myMessage2.add(pmouseY);
+        
+      //envia el mensaje osc
+      oscP5.send(myMessage2, dosisConection);  
+    }
+    
+    if(sendComunicacionMouseSC == true)
+    {
+      //cada medio segundo envia el mensaje a super collider
+      if (millis() - tiempoInicioSC > tiempoEsperaSC) 
+      {
+        if(enviaMsn == true)
+        {
+          //crea un mensaje osc
+          OscMessage myMessage3 = new OscMessage("/DosisComunicacionSC");
+          
+          myMessage3.add(mouseX);
+          myMessage3.add(mouseY);
+            
+          //envia el mensaje osc a supercollider
+          oscP5.send(myMessage3, superColliderConection);  
+          
+          //apenas envie el mensaje deje de enviar hasta que pase el tiempo para volver a enviar el mensaje
+          enviaMsn=false;
+        }    
+        tiempoInicioSC = millis();
+      }
+      else
+      {
+         enviaMsn = true;
+      }  
+    }
+   
 }
