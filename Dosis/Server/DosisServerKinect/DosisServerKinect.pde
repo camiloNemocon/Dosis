@@ -14,7 +14,8 @@ NetAddress myRemoteLocation;
 
 AudioIn myInput;
 FFT fft;
-AudioDevice device;
+
+
 
 BufferSound bufferSound; 
 
@@ -127,16 +128,11 @@ void setup()
   //volumen del audio input va de 0.0 a 1.0
   myInput.amp(volAudioInput);
 
-  // If the Buffersize is larger than the FFT Size, the FFT will fail so we set Buffersize equal to bands
-  device = new AudioDevice(this, 44000, bufferSize);
 
   delay(1000);
   
   // Create and patch the FFT analyzer
-  fft = new FFT(this, bufferSize);
-  
-  delay(1000);
-  
+  fft = new FFT(this, bufferSize);  
   fft.input(myInput);
   
   delay(1000);
