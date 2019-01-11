@@ -51,9 +51,6 @@ ArrayList<String> codigosArduino;
 //texto con serparacion con , para poder hacer split posteriormente
 String buff2 = "";
 
-//variable que guarda los caracteres cuando se le da backspace
-String letrasSinBorrar2="";
-
 //genera el envio de datos en forma de loop
 boolean enviarDatos = false;
 
@@ -326,6 +323,7 @@ void keyPressed()
     
     TeclaLive = str(k);
     
+    
     switch(k)
     {    
       //cuando se le da backspace
@@ -334,6 +332,11 @@ void keyPressed()
       {
         buff1 = buff1.substring(1);
       }
+      
+      if(buff2.length()>0)
+      {
+         buff2 = buff2.substring(0,buff2.length()-2);
+      }      
       
       if(buff.length()>0)
       {
@@ -361,6 +364,16 @@ void keyPressed()
         //texto que se escribe en el orden correcto en el canvas
         buff1=k+buff1;     
       }
+      else
+      {
+         if(tecladoLive == true)
+         { 
+            codigos.add(buff1);
+            buff1 = "";
+            //coloca el mensaje del historial abajo de la otra palabra
+            y+=30; 
+         }
+      }
       
       
       if(textWidth(buff+k)+leftmargin < width-rightmargin)
@@ -370,10 +383,12 @@ void keyPressed()
         
         if(buff.equals("Once") || buff.equals("Loop") || buff.equals("PararA") ||  buff.equals("Same") ||  buff.equals("TimeS"))
         {
+          tecladoLive = false;
           palabraInstruccion = 13; 
         }      
         else if(buff.equals("Super"))
         {
+          tecladoLive = false;
           palabraInstruccion = 12; 
         }
         else if(buff.equals("Tecla")|| buff.equals("PararT"))
@@ -398,6 +413,7 @@ void keyPressed()
         
       break;
     }
+    
 }
 
 
@@ -723,6 +739,8 @@ void stopArduino()
     arduino.digitalWrite(i, Arduino.LOW);
     arduino.analogWrite( i, 0 );
   } 
+  
+  println("PARA A ARDUINO");
 }
 
 
@@ -793,6 +811,8 @@ void datosArduino(int sendTime)
       {
         datoSend[i] = 21; 
       }
+      
+      println(datoSend[i]);
     }    
     
     totalBytes = datoSend.length;
@@ -913,35 +933,28 @@ void enviarArduinoTimeStart(String timeSend)
       }
     }
    
+
     if(empezar3==true && mensajeTimePrendido.length == (totalBytes-1))
     {    
       tiempoEmpezar = (((int(mensajeTimeSend[0])*1000)-(millis()-tiempoReiniciar3))/1000)+tiempoFlechas;
       
-      //println(tiempoEmpezar);
-                         
       if(tiempoEmpezar < 0)
       {       
         for(int j=0; j<mensajeTimePrendido.length; j++)
-        {      
+        {  
           //los prende todos
           arduino.digitalWrite(datoSend[j], Arduino.HIGH);             
           
           //corre el tiempo de prendido de cada pin
           tiempoPrendido[j] = ((int(mensajeTimePrendido[j])*1000)-(millis()-tiempoReiniciarV2[j]))/1000;
-          
-          //println(j+" -------------- "+tiempoPrendido[j]);
-         
+        
           if(tiempoPrendido[j] < 0)
           {
             arduino.digitalWrite(datoSend[j], Arduino.LOW); 
           }
-          
-           //println(idMayor+" num mayor");
-          
           //apenas acabe el tiempo del pin con mayorTiempoPrendido entonces reinicia el tiempo de todo para que prenda
           if(tiempoPrendido[j] < 0 && j == idMayor)
           {
-            //println(j+" +++++++++++++++++++++++++++++++++++++++++++++++++++++");
             tiempoReiniciar3 = millis();
           }
         }
@@ -956,12 +969,12 @@ void enviarArduinoTimeStart(String timeSend)
     } 
     else
     {
-      print("la cantidad de variables de tiempo no cerresponde a la cantidad de pines a activar"); 
+      println("la cantidad de variables de tiempo no cerresponde a la cantidad de pines a activar"); 
     }
   }
   else
   {
-    print("la cantidad de variables del primer parametro sólo debe ser 1 antes del  simbolo |"); 
+    println("la cantidad de variables del primer parametro sólo debe ser 1 antes del  simbolo |"); 
   }
 }
 

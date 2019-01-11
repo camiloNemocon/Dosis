@@ -45,9 +45,6 @@ ArrayList<String> codigosArduino;
 //texto con serparacion con , para poder hacer split posteriormente
 String buff2 = "";
 
-//variable que guarda los caracteres cuando se le da backspace
-String letrasSinBorrar2="";
-
 //genera el envio de datos en forma de loop
 boolean enviarDatos = false;
 
@@ -292,6 +289,11 @@ void keyPressed()
         buff1 = buff1.substring(1);
       }
       
+      if(buff2.length()>0)
+      {
+         buff2 = buff2.substring(0,buff2.length()-2);
+      } 
+      
       if(buff.length()>0)
       {
         for(int i=0;i<buff.length()-1;i++)
@@ -318,6 +320,16 @@ void keyPressed()
         //texto que se escribe en el orden correcto en el canvas
         buff1=k+buff1;     
       }
+      else
+      {
+         if(tecladoLive == true)
+         { 
+            codigos.add(buff1);
+            buff1 = "";
+            //coloca el mensaje del historial abajo de la otra palabra
+            y+=30; 
+         }
+      }
       
       
       if(textWidth(buff+k)+leftmargin < width-rightmargin)
@@ -327,6 +339,7 @@ void keyPressed()
         
         if(buff.equals("Once") || buff.equals("Loop") || buff.equals("PararA") ||  buff.equals("Same") ||  buff.equals("TimeS"))
         {
+          tecladoLive = false;
           palabraInstruccion = 13; 
         }        
         else if(buff.equals("Tecla")|| buff.equals("PararT"))

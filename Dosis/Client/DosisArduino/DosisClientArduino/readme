@@ -4,15 +4,7 @@ onceArduino() => to send data to Arduino, and Arduino once turn on the pins that
 
 loopArduino() => send repeatedly data to Arduino, and Arduino turn on the pins that you typeWitre after you put this code.
 
-PararArduino() => stop sending data to Arduino.
-
-Teclado() => send data to Arduino and turn on the pin when the key is pressed in real time
-
-PararTeclado() => stop sending data to Arduino, when the key is pressed
-
-SameTime(int(timeStart)|int(timeOn))  => turn on the pins of Arduino (2,4,7,8 not PWM pins) in independent time, the parameter before | symbol are the time in seconds to start turn on the pins, and the parameters after | symbol represent the time in seconds that stays on the pins of Arduino. The amount of numbers before | and after | must be the same. Arduino turn on the pins that you typeWitre after you put this code, but the amount of keys must be the same of the parameters after | symbol. 
-
-TimeStart(int(timeStart)|int(timeOn))  => turn on the pins of Arduino (2,4,7,8 not PWM pins) at the same time, only one the parameter before | symbol that are the time in seconds to start turn on the pins, and the parameters after | symbol represent the time in seconds that stays on the pins of Arduino. Arduino turn on the pins that you typeWitre after you put this code, but the amount of keys must be the same of the parameters after | symbol.  
+pararLoopArduino() => stop sending data to Arduino.
 
 
 To use Relay with Dosis Interface, you need conect the positive wire in C (Common Pin) and in NC (normally connected) into relay

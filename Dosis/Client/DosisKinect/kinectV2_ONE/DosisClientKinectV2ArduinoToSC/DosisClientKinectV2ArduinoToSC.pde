@@ -40,14 +40,14 @@ int y=90;
 //arreglo con los mensajes enviados
 ArrayList<String> codigos;
 
+//a partir de la palabra detectada escrita por el usuario se determina la instruccion a colocar
+int palabraInstruccion = 0;
+
 //envia los datos del mouse 
 boolean sendComunicacionMouse = false;
 
 //envia los datos del mouse y pmouse
 boolean sendComunicacionMouse2 = false;
-
-//a partir de la palabra detectada escrita por el usuario se determina la instruccion a colocar
-int palabraInstruccion = 0;
 
 //envia los datos del mouse a SuperCollider
 boolean sendComunicacionMouseSC = false;
@@ -93,9 +93,6 @@ ArrayList<String> codigosArduino;
 //texto con serparacion con , para poder hacer split posteriormente
 String buff2 = "";
 
-//variable que guarda los caracteres cuando se le da backspace
-String letrasSinBorrar2="";
-
 //genera el envio de datos en forma de loop
 boolean enviarDatos = false;
 
@@ -103,7 +100,7 @@ boolean enviarDatos = false;
 boolean enviarDatosEnter = false;
 
 //manejo del envio de los datos a arduino cada medio segundo
-int tiempoEsperaSC = 500 ; 
+int tiempoEsperaSC = 300 ; 
 int tiempoInicioSC = 0;
 
 int totalBytes = 12;
@@ -400,6 +397,8 @@ void keyPressed()
   char k;
   k = (char)key;
   
+  TeclaLive = str(k);
+  
   switch(k)
   {    
     //cuando se se le da backspace
@@ -408,6 +407,11 @@ void keyPressed()
     {
       buff1 = buff1.substring(1);
     }
+    
+    if(buff2.length()>0)
+    {
+       buff2 = buff2.substring(0,buff2.length()-2);
+    } 
     
     if(buff.length()>0)
     {
@@ -435,7 +439,16 @@ void keyPressed()
       //texto que se escribe en el orden correcto en el canvas
       buff1=k+buff1;     
     }
-    
+    else
+    {
+       if(tecladoLive == true)
+       { 
+          codigos.add(buff1);
+          buff1 = "";
+          //coloca el mensaje del historial abajo de la otra palabra
+          y+=30; 
+       }
+    }
     
     if(textWidth(buff+k)+leftmargin < width-rightmargin)
     {
@@ -496,10 +509,12 @@ void keyPressed()
       }
       else if(buff.equals("Once") || buff.equals("Loop") || buff.equals("PararA") ||  buff.equals("Same") ||  buff.equals("TimeS"))
       {
+        tecladoLive = false;
         palabraInstruccion = 14; 
       }      
       else if(buff.equals("Super"))
       {
+        tecladoLive = false;
         palabraInstruccion = 15; 
       }
       else if(buff.equals("Tecla")|| buff.equals("PararT"))
@@ -875,12 +890,12 @@ void keyReleased()
   {
     if(enviarDatos==true)
     {
-      tiempoEspera = tiempoEspera + 50; 
+      tiempoEspera = tiempoEspera + 100; 
     }
     
     if(sendComunicacionMouseSC == true)
     {
-      tiempoEsperaSC = tiempoEsperaSC + 50; 
+      tiempoEsperaSC = tiempoEsperaSC + 100; 
     }
     
     if(enviarDatos2 == true || enviarDatos3 == true)
@@ -893,12 +908,12 @@ void keyReleased()
   {
     if(enviarDatos==true)
     {
-      tiempoEspera = tiempoEspera - 50; 
+      tiempoEspera = tiempoEspera - 100; 
     }
     
     if(sendComunicacionMouseSC == true)
     {
-      tiempoEsperaSC = tiempoEsperaSC - 50; 
+      tiempoEsperaSC = tiempoEsperaSC - 100; 
     }
     
     if(enviarDatos2 == true || enviarDatos3 == true)
@@ -1299,7 +1314,7 @@ void drawSkeleton(KJoint[] joints)
       //enviamos el mensaje osc
       OscMessage myMsn = new OscMessage("/DosisComunicacionSC");
       myMsn.add(manoIzqX);  
-      myMsn.add(manoDerX);
+      myMsn.add(manoIzqY);
      
       //push mano derecha
       if(manoDerz > 270)
