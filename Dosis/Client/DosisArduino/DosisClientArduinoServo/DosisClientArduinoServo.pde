@@ -95,6 +95,15 @@ void setup()
   
   //puerto serial por donde le va a enviar los datos a arduino para MAC
   //arduino = new Arduino(this, "/dev/cu.usbmodem1411", 57600); 
+  
+  for (int i = 0; i <= 22; i++)
+  {
+    arduino.pinMode(i, Arduino.OUTPUT);
+    
+    //apago todos lo pines
+    arduino.digitalWrite(i, Arduino.LOW);
+    arduino.analogWrite( i, 0 );
+  }
 }
 
 
@@ -221,6 +230,10 @@ void keyPressed()
       //mensaje en el orden correcto de caracteres para enviar
       buff=buff+k;
       
+      if(buff.equals("PararA"))
+      {
+      	palabraInstruccion = 13;
+      }
       if(buff.equals("servo"))
       {
         palabraInstruccion = 14; 
@@ -262,13 +275,23 @@ void instrucciones()
   
   fill(#550F90);
   
-  if(palabraInstruccion == 14)
+  if(palabraInstruccion == 13)
   {
+    textSize(25);
+    text("PararArduino() => para el envio de la data",10,690);
+  }
+  else if(palabraInstruccion == 14)
+  {
+    textSize(25);
     text("servoArduino(outPin,ptoIn,estado,ang,tiempo)",10,630);
-    text("int outPin => pin al que esta conectado el servo",10,660);
-    text("int ptoIn => donde empieza el giro",10,690);
-    text("int estado => estados desde el 0 hasta el 5",10,720);
-    text("int ang => rotación en el estado 2, 3 o 4",10,750);
+    textSize(16);
+    text("int outPin => pin al que esta conectado el servo",10,650);
+    text("int ptoIn => donde empieza el giro",10,670);
+    text("int estado => estados desde el 0 hasta el 7",10,690);
+    text("int ang => rotación en el estado 2, 3, 4, 5, 6",10,710);
+    text("int tiempo en millisegundos => estado 2, 3",10,730);
+    textSize(25);
+    text("         ",10,750);
   }
   
 }
@@ -277,70 +300,75 @@ void keyReleased()
 {
   //cuando opriman enter
   if(keyCode==ENTER)
-  {    
-    String temp = "";
-    String[] mensaje;
-    String[] mensajeDatos;
-    boolean mensajeValido = false;
+  { 
+    if(buff.equals("PararArduino()"))
+    {
+      stopArduino();
+    }
+
+    String temp1 = "";
+    String[] mensaje1;
+    String[] mensajeDatos1;
+    boolean mensajeValido1 = false;
     
     if(buff.substring(buff.length()-1).equals(")"))
     {
-      temp = buff.substring(0,buff.length()-1);    
-      mensajeValido = true;
+      temp1 = buff.substring(0,buff.length()-1);    
+      mensajeValido1 = true;
     }
     
-    if(mensajeValido == true )
+    if(mensajeValido1 == true )
     {
-      mensaje = split(temp,'('); 
+      mensaje1 = split(temp1,'('); 
       
       //si recibe el mensaje correcto de servoArduino
-      if (mensaje[0].equals("servoArduino"))
+      if (mensaje1[0].equals("servoArduino"))
       { 
          //si no hay nada dentro del parentesis ()
-         if(mensaje[1].equals("")||mensaje[1].equals(" "))
+         if(mensaje1[1].equals("")||mensaje1[1].equals(" "))
          {
               println("Faltan los 5 parametros");
          }
          else
          {
-             mensajeDatos = split(mensaje[1],',');
+             mensajeDatos1 = split(mensaje1[1],',');
              
             //si la cantidad de parametros son correctos  
-            if(mensajeDatos.length == 5)
+            if(mensajeDatos1.length == 5)
             {
-              if(int(mensajeDatos[0])==2)
+              if(int(mensajeDatos1[0])==2)
               {
-                servoPin2 = new ServoDosis(int(mensajeDatos[0]),int(mensajeDatos[1]),int(mensajeDatos[2]),int(mensajeDatos[3]),int(mensajeDatos[4]));   
+                servoPin2 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
                 servoActivoPin2 = true;
               }
-              if(int(mensajeDatos[0])==4)
+              if(int(mensajeDatos1[0])==4)
               {
-                servoPin4 = new ServoDosis(int(mensajeDatos[0]),int(mensajeDatos[1]),int(mensajeDatos[2]),int(mensajeDatos[3]),int(mensajeDatos[4]));   
+                servoPin4 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
                 servoActivoPin4 = true;
               }
-              if(int(mensajeDatos[0])==7)
+              if(int(mensajeDatos1[0])==7)
               {
-                servoPin7 = new ServoDosis(int(mensajeDatos[0]),int(mensajeDatos[1]),int(mensajeDatos[2]),int(mensajeDatos[3]),int(mensajeDatos[4]));   
+                servoPin7 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
                 servoActivoPin7 = true;
               }
-              if(int(mensajeDatos[0])==8)
+              if(int(mensajeDatos1[0])==8)
               {
-                servoPin8 = new ServoDosis(int(mensajeDatos[0]),int(mensajeDatos[1]),int(mensajeDatos[2]),int(mensajeDatos[3]),int(mensajeDatos[4]));   
+                servoPin8 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
                 servoActivoPin8 = true;
               }
-              if(int(mensajeDatos[0])==12)
+              if(int(mensajeDatos1[0])==12)
               {
-                servoPin12 = new ServoDosis(int(mensajeDatos[0]),int(mensajeDatos[1]),int(mensajeDatos[2]),int(mensajeDatos[3]),int(mensajeDatos[4]));   
+                servoPin12 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
                 servoActivoPin12 = true;
               }
-              if(int(mensajeDatos[0])==13)
+              if(int(mensajeDatos1[0])==13)
               {
-                servoPin13 = new ServoDosis(int(mensajeDatos[0]),int(mensajeDatos[1]),int(mensajeDatos[2]),int(mensajeDatos[3]),int(mensajeDatos[4]));   
+                servoPin13 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
                 servoActivoPin13 = true;
               }
               
             }
-            //si la cantidad de paarametros dentro del parentesis no son correctos
+            //si la cantidad de parametros dentro del parentesis no son correctos
             else
             {
               println("Faltan los 5 parametros");
@@ -368,17 +396,47 @@ void keyReleased()
   
   if(keyCode==RIGHT)
   {   
-      palabraInstruccion = 14;
+     palabraInstruccion ++;
+    
+    if(palabraInstruccion > 14)
+    {
+      palabraInstruccion = 13;
+    }
   }
   
   if(keyCode==LEFT)
   {
+     palabraInstruccion --;
+    
+    if(palabraInstruccion < 13)
+    {
       palabraInstruccion = 14;
+    }
   }
   
     
    
 }
+
+
+
+void stopArduino()
+{  
+	servoActivoPin2 = false;
+	servoActivoPin4 = false;
+	servoActivoPin7 = false;
+	servoActivoPin8 = false;
+	servoActivoPin12 = false;
+	servoActivoPin13 = false;
+
+  for (int i = 0; i <= 22; i++)
+  {
+    //apago todos lo pines
+    arduino.digitalWrite(i, Arduino.LOW);
+    arduino.analogWrite( i, 0 );
+  } 
+}
+
 
 void mouseMoved() 
 {

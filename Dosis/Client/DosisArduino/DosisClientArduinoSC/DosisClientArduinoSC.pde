@@ -20,6 +20,21 @@ MsaFluids msaFluids;
 
 Arduino arduino;
 
+ServoDosis servoPin2;
+ServoDosis servoPin4;
+ServoDosis servoPin7;
+ServoDosis servoPin8;
+ServoDosis servoPin12;
+ServoDosis servoPin13;
+
+boolean servoActivoPin2 = false;
+boolean servoActivoPin4 = false;
+boolean servoActivoPin7 = false;
+boolean servoActivoPin8 = false;
+boolean servoActivoPin12 = false;
+boolean servoActivoPin13 = false;
+
+
 
 // inverse of screen dimensions
 float invWidth, invHeight;    
@@ -256,6 +271,31 @@ void draw()
     enviarArduinoTimeStart(timeSend);
   }
   
+  if(servoActivoPin2==true)
+  {
+    servoPin2.update();
+  }
+  if(servoActivoPin4==true)
+  {
+    servoPin4.update();
+  }
+  if(servoActivoPin7==true)
+  {
+    servoPin7.update();
+  }
+  if(servoActivoPin8==true)
+  {
+    servoPin8.update();
+  }
+  if(servoActivoPin12==true)
+  {
+    servoPin12.update();
+  }
+  if(servoActivoPin13==true)
+  {
+    servoPin13.update();
+  }
+  
   //test pines numeros
   /*for( int i = 2; i < 10; i++ ) 
   { 
@@ -381,11 +421,15 @@ void keyPressed()
         //mensaje en el orden correcto de caracteres para enviar
         buff=buff+k;
         
-        if(buff.equals("Once") || buff.equals("Loop") || buff.equals("PararA") ||  buff.equals("Same") ||  buff.equals("TimeS"))
+        if(buff.equals("Once") || buff.equals("Loop") || buff.equals("PararA"))
         {
           tecladoLive = false;
           palabraInstruccion = 13; 
         }      
+        else if (buff.equals("Same") ||  buff.equals("TimeS"))
+        {
+          palabraInstruccion = 14; 
+        }
         else if(buff.equals("Super"))
         {
           tecladoLive = false;
@@ -393,7 +437,7 @@ void keyPressed()
         }
         else if(buff.equals("Tecla")|| buff.equals("PararT"))
         {
-          palabraInstruccion = 14; 
+          palabraInstruccion = 15; 
         }    
       }
       
@@ -448,21 +492,54 @@ void instrucciones()
   
   if(palabraInstruccion == 13)
   {
+    textSize(25);
     text("OnceArduino() => envia la data una vez",10,630);
     text("LoopArduino() => envia la data todo el tiempo",10,660);
     text("PararArduino() => para el envio de la data",10,690);
-    text("SameTime(int(timeStart)|int(timeOn))",10,720);
-    text("TimeStart(int(timeStart)|int(timeOn))",10,750);
   }
   else if(palabraInstruccion == 12)
   {
+    textSize(25);
     text("SuperColliderMouse() =>envia la pos mouse (x,y)",10,630);
     text("SuperColliderCod(int) =>envia int a SuperCollider",10,660);
   }
-  else if(palabraInstruccion == 14)
+  if(palabraInstruccion == 14)
   {
+    textSize(25);
+    text("SameTime(int(timeStart)|int(timeOn))",10,630);
+    
+    textSize(16);
+    text("(tiempo empieza a prender cada pin|tiempo dura prendido cada pin)",10,650);
+    text("Ej: SameTime(2,4|5,5)        4,8(pines)",10,670);
+    
+    textSize(25);
+    text("TimeStart(int(timeStart)|int(timeOn))",10,700);
+    
+    textSize(16);
+    text("(UN # tiempo empieza a prender los pines|tiempo dura prendido cada pin)",10,720);
+    text("Ej: TimeStart(2|3,2)        4,8(pines)",10,740);
+    
+    textSize(25);
+    text("         ",10,750);
+  }
+  else if(palabraInstruccion == 15)
+  {
+    textSize(25);
     text("Teclado() =>Activa Arduino con las teclas",10,630);
     text("PararTeclado() =>Desactiva Arduino con las teclas",10,660);
+  }
+  else if(palabraInstruccion == 16)
+  {
+    textSize(25);
+    text("servoArduino(outPin,ptoIn,estado,ang,tiempo)",10,630);
+    textSize(16);
+    text("int outPin => pin al que esta conectado el servo",10,650);
+    text("int ptoIn => donde empieza el giro",10,670);
+    text("int estado => estados desde el 0 hasta el 7",10,690);
+    text("int ang => rotación en el estado 2, 3, 4, 5, 6",10,710);
+    text("int tiempo en millisegundos => estado 2, 3",10,730);
+    textSize(25);
+    text("         ",10,750);
   }
   
 }
@@ -486,6 +563,75 @@ void keyReleased()
     //adiciona el string al arreglo de mensajes enviados para dibujarlos
     codigos.add(buff);   
            
+    String temp1 = "";
+    String[] mensaje1;
+    String[] mensajeDatos1;
+    boolean mensajeValido1 = false;
+    
+    if(buff.substring(buff.length()-1).equals(")"))
+    {
+      temp1 = buff.substring(0,buff.length()-1);    
+      mensajeValido1 = true;
+    }
+    
+    if(mensajeValido1 == true )
+    {
+      mensaje1 = split(temp1,'('); 
+      
+      //si recibe el mensaje correcto de servoArduino
+      if (mensaje1[0].equals("servoArduino"))
+      { 
+         //si no hay nada dentro del parentesis ()
+         if(mensaje1[1].equals("")||mensaje1[1].equals(" "))
+         {
+              println("Faltan los 5 parametros");
+         }
+         else
+         {
+           mensajeDatos1 = split(mensaje1[1],',');
+           
+          //si la cantidad de parametros son correctos  
+          if(mensajeDatos1.length == 5)
+          {
+            if(int(mensajeDatos1[0])==2)
+            {
+              servoPin2 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
+              servoActivoPin2 = true;
+            }
+            if(int(mensajeDatos1[0])==4)
+            {
+              servoPin4 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
+              servoActivoPin4 = true;
+            }
+            if(int(mensajeDatos1[0])==7)
+            {
+              servoPin7 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
+              servoActivoPin7 = true;
+            }
+            if(int(mensajeDatos1[0])==8)
+            {
+              servoPin8 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
+              servoActivoPin8 = true;
+            }
+            if(int(mensajeDatos1[0])==12)
+            {
+              servoPin12 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
+              servoActivoPin12 = true;
+            }
+            if(int(mensajeDatos1[0])==13)
+            {
+              servoPin13 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
+              servoActivoPin13 = true;
+            }            
+          }
+          //si la cantidad de parametros dentro del parentesis no son correctos
+          else
+          {
+            println("Faltan los 5 parametros");
+          }
+        }  
+      }
+    }
    
     if(buff.equals("PararArduino()"))
     {
@@ -651,10 +797,15 @@ void keyReleased()
   
   
   if(keyCode==RIGHT)
-  {   
+  {
+    if(palabraInstruccion == 0)
+    {
+      palabraInstruccion = 12;
+    }
+    
      palabraInstruccion ++;
     
-    if(palabraInstruccion > 14)
+    if(palabraInstruccion > 15)
     {
       palabraInstruccion = 12;
     }
@@ -666,7 +817,7 @@ void keyReleased()
     
     if(palabraInstruccion < 12)
     {
-      palabraInstruccion = 14;
+      palabraInstruccion = 15;
     }
   }
   
@@ -732,6 +883,13 @@ void stopArduino()
   enviarDatos = false;
   enviarDatos2 = false;
   enviarDatos3 = false;
+  
+  servoActivoPin2 = false;
+  servoActivoPin4 = false;
+  servoActivoPin7 = false;
+  servoActivoPin8 = false;
+  servoActivoPin12 = false;
+  servoActivoPin13 = false;
   
   for (int i = 0; i <= 22; i++)
   {

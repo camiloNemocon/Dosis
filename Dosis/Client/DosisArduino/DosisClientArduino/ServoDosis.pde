@@ -10,14 +10,13 @@ class ServoDosis
   boolean llego1=false;
   boolean llego2=false;
   
-  //int estado => estados desde el 0 hasta el 7, cada estado corresponde a una forma distinta de giro
+  //int estado => estados desde el 0 hasta el 5, cada estado corresponde a una forma distinta de giro
   int estado;  
   
   //int puntoInicio => donde empieza el giro
   int puntoInicio;
-  int puntoInicioBK;
   
-  //int angulo => rotación cuando se usa el estado 2, 3, 4, 5, 6 
+  //int angulo => rotación cuando se usa el estado 2, 3 o 4 
   int angulo;
 
   //manejo del envio de los datos a arduino cada medio segundo
@@ -39,19 +38,17 @@ class ServoDosis
       println("El punto de inicio debe ser un numero menor a 180");
     }
     
-    if(estadoT > 7)
+    if(estadoT > 5)
     {
       puntoInicioT = 1; 
-      println("El estado va  desde 0 hasta 7, NO puede ser un número mayor a 7");
+      println("El estado va  desde 0 hasta 5, NO puede ser un número mayor a 5");
     }   
     
     outputPin = outputPinT;
     estado = estadoT;  
-    puntoInicio = puntoInicioT;
+    puntoInicio = estadoT;
     angulo = anguloT;
     tEspera = tEsperaT;
-    
-    puntoInicioBK = puntoInicioT;
   
     //Se inicializan los puertos que no son PWM para usarlos con el servo motor
     arduino.pinMode(outputPin, Arduino.SERVO);
@@ -60,14 +57,15 @@ class ServoDosis
   //void update(int puntoInicio, int estado, int angulo, int tEspera)
   void update()
   {
+
     if (estado == 0)
-    {      
+    {
       if (puntoInicio < 180)
       {
         puntoInicio++;
       } else
       {
-        puntoInicio = puntoInicioBK;
+        puntoInicio = 0;
       }
     }
 
@@ -85,7 +83,7 @@ class ServoDosis
       {
         llego1 = true;
       }
-      if (puntoInicio == puntoInicioBK)
+      if (puntoInicio == 0)
       {
         llego1 = false;
       }
@@ -103,7 +101,7 @@ class ServoDosis
       } 
       else
       {
-        puntoInicio = puntoInicioBK;
+        puntoInicio = 0;
       }
     }
 
@@ -126,60 +124,29 @@ class ServoDosis
         }
       }
 
-      if (puntoInicio >= 180)
+      if (puntoInicio >= 170)
       {
         llego2 = true;
       }
-      if (puntoInicio <= puntoInicioBK)
+      if (puntoInicio <= 10)
       {
         llego2 = false;
       }
     }
     
-    
-    // va desde en punto de inicio hasta 180 girando cada angulo indicado
     if (estado == 4)
     {
       if (puntoInicio < 180)
       {
-          puntoInicio += angulo;
-          delay(100);
+          puntoInicio += angulo;     
       } 
       else
       {
-        puntoInicio = puntoInicioBK;
+        puntoInicio = 0;
       }
     }
-    
-    // va desde el punto de inicio hasta el puno de inicio + el angulo dado y se devuelve el mismo angulo
+
     if (estado == 5)
-    {
-      if(puntoInicioBK+angulo > 180)
-      {
-        println("la rotación desde el punto de inicio y el angulo excede los 180 grados");
-      }
-      else
-      {      
-        //println(puntoInicio);
-        if (puntoInicio < puntoInicioBK+angulo)
-        {
-            puntoInicio += angulo;
-            delay(200);
-        } 
-        else
-        {
-          puntoInicio -= angulo;
-          delay(200);
-        }
-      }      
-    }
-
-    if (estado == 6)
-    {
-      puntoInicio = angulo;
-    }
-
-    if (estado == 7)
     {
       puntoInicio = 0;
     }
