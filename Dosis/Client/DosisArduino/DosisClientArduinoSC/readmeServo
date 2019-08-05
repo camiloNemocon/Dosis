@@ -1,11 +1,31 @@
+
 To use a servo motor in Dosis, you need to typeWriting in Dosis interface
 
-servoArduino(outPin,ptoIn,state,ang,timeWait)
+
+
+servoArduino()
+
+next outPin,ptoIn,state,ang,time
+
+
+
 
 //outPin => Arduino pin, conected to servo
-//int ptoIn => Initial point of the round
-//int state => 6 states, since 0 to 5, each state produce differents types of round
-//int ang => angle of rotation. The angle is used when the state is 2, 3 o 4 
-//int timeWait => milliseconds time in each round movement. The timeWait is used when the state is 2 or 3
+. This is used in all states.
+//int ptoIn => Initial point of the round. This is used when the state is 1,2,3
+
+//int state => 6 states, since 0 to 5, each state produce differents types of round. This is used in all states.
+
+//int ang => Final point of the round. The angle is used when the state is 0,1,2,3,4 
+
+//int timeWait => seconds time in each round movement. The timeWait is used when the state is 2,3
+
+
+state=0 (start 0° and turn to angle, next its return to 0° fast)(The second parameter and the last dont be used)
+state=1 (start in ptoIn and turn to angle, next its return with the same time as it arrive)(The last parameter dont be used)
+state=2 (start in ptoIn and turn to 180°, turn each ang parameter, next return fast to ptoIn and wait timeWait parameter to start again)
+state=3 (start in ptoIn and turn to angle fast, next wait TimeWait parameter to return to ptoIn fast) 
+state=4 (turn to ang parameter)(The second parameter and the last dont be used)
+state=5 (turn to 0°)(The second, fourth parameter and the last dont be used)
 
 To use Servo Motor with Dosis interface, The servo motor are conected in pin: pin 2,4,7,8,12 or 13, never in PWM pins.

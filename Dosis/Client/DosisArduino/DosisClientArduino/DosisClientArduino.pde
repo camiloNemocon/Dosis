@@ -65,7 +65,7 @@ boolean enviarDatos = false;
 boolean enviarDatosEnter = false;
 
 //manejo del envio de los datos a arduino cada medio segundo
-int tiempoEspera = 500 ; 
+int tiempoEspera = 500; 
 int tiempoInicio = 0;
 
 int totalBytes = 12;
@@ -158,6 +158,8 @@ void setup()
     arduino.digitalWrite(i, Arduino.LOW);
     arduino.analogWrite( i, 0 );
   }
+  
+  stopArduino();
   
   tiempoReiniciar = new int [9];    
   tiempoReiniciarV2 = new int [9];  
@@ -265,6 +267,7 @@ void draw()
   }*/
   
   
+  
 }
 
 
@@ -329,7 +332,8 @@ void keyPressed()
       
       if(buff2.length()>0)
       {
-         buff2 = buff2.substring(0,buff2.length()-2);
+         //buff2 = buff2.substring(0,buff2.length()-2);
+         buff2 = buff2.substring(0,buff2.length()-1);
       } 
       
       if(buff.length()>0)
@@ -388,7 +392,7 @@ void keyPressed()
         {
           palabraInstruccion = 15; 
         }
-        if(buff.equals("servo"))
+        if(buff.equals("Servo"))
         {
           palabraInstruccion = 16; 
         }    
@@ -400,7 +404,8 @@ void keyPressed()
         if(textWidth(buff2+k)+leftmargin < width-rightmargin)
         {
           //mensaje que se le incluye la , para hacer posteriormente un split
-          buff2=buff2+k+",";
+          //buff2=buff2+k+",";
+          buff2=buff2+k;
         }      
       }
       else
@@ -446,9 +451,19 @@ void instrucciones()
   if(palabraInstruccion == 13)
   {
     textSize(25);
-    text("OnceArduino() => envia la data una vez",10,630);
-    text("LoopArduino() => envia la data todo el tiempo",10,660);
-    text("PararArduino() => para el envio de la data",10,690);
+    text("OnceArduino() => envia la data una vez.",10,630);
+    
+    textSize(16);
+    text("Ej: OnceArduino()             3,4,5,6(pines)",10,650);
+    
+    textSize(25);
+    text("LoopArduino() => envia la data todo el tiempo",10,680);
+    
+    textSize(16);
+    text("Ej: LoopArduino()             3,4,5,6(pines)",10,700);
+    
+    textSize(25);    
+    text("PararArduino() => para el envio de la data",10,730);
   }
   if(palabraInstruccion == 14)
   {
@@ -478,15 +493,30 @@ void instrucciones()
   else if(palabraInstruccion == 16)
   {
     textSize(25);
-    text("servoArduino(outPin,ptoIn,estado,ang,tiempo)",10,630);
+    text("ServoArduino()",10,630);
     textSize(16);
+    text("Ej: ServoArduino()             outPin,ptoIn,estado,ang ",140,630);
     text("int outPin => pin al que esta conectado el servo",10,650);
-    text("int ptoIn => donde empieza el giro",10,670);
-    text("int estado => estados desde el 0 hasta el 7",10,690);
-    text("int ang => rotación en el estado 2, 3, 4, 5, 6",10,710);
-    text("int tiempo en millisegundos => estado 2, 3",10,730);
+    text("int ptoIn => donde empieza el giro (usado en el estado: 1,2,3)",10,670);
+    text("int estado => estados desde el 0 hasta el 5",10,690);
+    text("int ang => donde termina o el angulo de giro (usado en el estado: 0,1,2,3,4)",10,710);
+    text("int tiempo en millisegundos (usado en el estado: 2,3)",10,730);
     textSize(25);
     text("         ",10,750);
+  }
+  else if(palabraInstruccion == 17)
+  {
+    textSize(20);
+    text("ServoArduino()",10,620);
+    textSize(14);
+    text("estado=0 (giro desde 0° hasta ang, luego retorna a 0° rápido)",10,640);
+    text("estado=1 (giro desde ptoIn hasta ang, luego retorna a ptoIn con el mismo tiempo de giro)",10,660);
+    text("estado=2 (giro desde ptoIn hasta 180°, donde el giro se realiza con el ang dado, luego retorna rápido y espera TimeWait para empezar)",10,680);
+    text("estado=3 (giro desde ptoIn hasta ang rápidamente, luego espera TimeWait para retornar hasta ptoIn rápidamente)",10,700);
+    text("estado=4 (giro al ang)",10,720);
+    text("estado=5 (giro a 0°)",10,740);
+    textSize(25);
+    text("         ",10,770);
   }
   
 }
@@ -504,75 +534,6 @@ void keyReleased()
     //adiciona el string al arreglo de mensajes enviados para dibujarlos
     codigos.add(buff); 
     
-    String temp1 = "";
-    String[] mensaje1;
-    String[] mensajeDatos1;
-    boolean mensajeValido1 = false;
-    
-    if(buff.substring(buff.length()-1).equals(")"))
-    {
-      temp1 = buff.substring(0,buff.length()-1);    
-      mensajeValido1 = true;
-    }
-    
-    if(mensajeValido1 == true )
-    {
-      mensaje1 = split(temp1,'('); 
-      
-      //si recibe el mensaje correcto de servoArduino
-      if (mensaje1[0].equals("servoArduino"))
-      { 
-         //si no hay nada dentro del parentesis ()
-         if(mensaje1[1].equals("")||mensaje1[1].equals(" "))
-         {
-              println("Faltan los 5 parametros");
-         }
-         else
-         {
-           mensajeDatos1 = split(mensaje1[1],',');
-           
-          //si la cantidad de parametros son correctos  
-          if(mensajeDatos1.length == 5)
-          {
-            if(int(mensajeDatos1[0])==2)
-            {
-              servoPin2 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
-              servoActivoPin2 = true;
-            }
-            if(int(mensajeDatos1[0])==4)
-            {
-              servoPin4 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
-              servoActivoPin4 = true;
-            }
-            if(int(mensajeDatos1[0])==7)
-            {
-              servoPin7 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
-              servoActivoPin7 = true;
-            }
-            if(int(mensajeDatos1[0])==8)
-            {
-              servoPin8 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
-              servoActivoPin8 = true;
-            }
-            if(int(mensajeDatos1[0])==12)
-            {
-              servoPin12 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
-              servoActivoPin12 = true;
-            }
-            if(int(mensajeDatos1[0])==13)
-            {
-              servoPin13 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
-              servoActivoPin13 = true;
-            }            
-          }
-          //si la cantidad de parametros dentro del parentesis no son correctos
-          else
-          {
-            println("Faltan los 5 parametros");
-          }
-        }  
-      }
-    }
    
     if(buff.equals("PararArduino()"))
     {
@@ -589,6 +550,17 @@ void keyReleased()
     {
        stopArduino();
        tecladoLive = false; 
+    }
+    
+    if(buff.equals("ServoArduino()"))
+    {  
+      //stopArduino();
+      buff = "";
+      buff1 = "";
+      buff2 = "";
+      tempSendParameter = 3;
+      datosArduino(tempSendParameter);  
+      timeSend="";
     }
     
     if(buff.equals("LoopArduino()"))
@@ -698,7 +670,7 @@ void keyReleased()
     
     palabraInstruccion ++;
     
-    if(palabraInstruccion > 16)
+    if(palabraInstruccion > 17)
     {
       palabraInstruccion = 13;
     }
@@ -710,7 +682,7 @@ void keyReleased()
     
     if(palabraInstruccion < 13)
     {
-      palabraInstruccion = 16;
+      palabraInstruccion = 17;
     }
   }
   
@@ -795,7 +767,7 @@ void datosArduino(int sendTime)
     
     for (int i = 0; i<translate.length; i++)
     {
-      if(translate[i].equals("2") || translate[i].equals("3") || translate[i].equals("4") || translate[i].equals("5") || translate[i].equals("6") || translate[i].equals("7") || translate[i].equals("8") || translate[i].equals("9"))
+      if(translate[i].equals("2") || translate[i].equals("3") || translate[i].equals("4") || translate[i].equals("5") || translate[i].equals("6") || translate[i].equals("7") || translate[i].equals("8") || translate[i].equals("9")|| translate[i].equals("10")|| translate[i].equals("11")|| translate[i].equals("12")|| translate[i].equals("13"))
       {
         datoSend[i] = int(translate[i]); 
       }
@@ -849,12 +821,63 @@ void datosArduino(int sendTime)
     {
       enviarDatos3 = true;
     }
+    else if(sendTime == 3)
+    {
+      servo();
+    }
   }
   
   activarArduino = true;
 }
 
-
+void servo()
+{
+    //println(msnUnidoArduino);
+    
+    String[] mensajeDatos1;
+    
+    mensajeDatos1 = split(msnUnidoArduino,',');
+    
+    //si la cantidad de parametros son correctos  
+    if(mensajeDatos1.length == 5)
+    {
+      if(int(mensajeDatos1[0])==2)
+      {        
+        servoPin2 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
+        servoActivoPin2 = true;
+      }
+      if(int(mensajeDatos1[0])==4)
+      {
+        servoPin4 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
+        servoActivoPin4 = true;
+      }
+      if(int(mensajeDatos1[0])==7)
+      {
+        servoPin7 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
+        servoActivoPin7 = true;
+      }
+      if(int(mensajeDatos1[0])==8)
+      {
+        servoPin8 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
+        servoActivoPin8 = true;
+      }
+      if(int(mensajeDatos1[0])==12)
+      {
+        servoPin12 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
+        servoActivoPin12 = true;
+      }
+      if(int(mensajeDatos1[0])==13)
+      {
+        servoPin13 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
+        servoActivoPin13 = true;
+      }            
+    }
+    //si la cantidad de parametros dentro del parentesis no son correctos
+    else
+    {
+      println("Faltan los 5 parametros");
+    }
+}
 
 void enviarArduinoSameTime(String timeSend)
 {     
@@ -881,8 +904,8 @@ void enviarArduinoSameTime(String timeSend)
   } 
   
   
-  //totalBytes-1 porque siempre envia un cero a arduino al final del arreglo
-  if(mensajeTimeSend.length == (totalBytes-1) && mensajeTimeSend.length == mensajeTimePrendido.length)
+  
+  if(mensajeTimeSend.length == (totalBytes) && mensajeTimeSend.length == mensajeTimePrendido.length)
   {
     if(mensajeTimeSend.length >= 1)
     {
@@ -915,7 +938,16 @@ void enviarArduinoSameTime(String timeSend)
   }
   else
   {
-    print("la cantidad de variables de tiempo no cerresponde a la cantidad de pines a activar"); 
+    println("la cantidad de variables de tiempo no corresponde a la cantidad de pines a activar"); 
+    println("parametros iniciales "+ mensajeTimeSend.length);
+    println("parametros finales "+ mensajeTimePrendido.length);
+    println("cantidad de pines " + (totalBytes));
+    println("buff " + msnUnidoArduino);
+    
+    for (int i = 0; i<datoSend.length; i++)
+    {
+      println(datoSend[i]); 
+    }
   }  
 }
 
@@ -951,7 +983,7 @@ void enviarArduinoTimeStart(String timeSend)
       }
     }
    
-    if(empezar3==true && mensajeTimePrendido.length == (totalBytes-1))
+    if(empezar3==true && mensajeTimePrendido.length == (totalBytes))
     {    
       tiempoEmpezar = (((int(mensajeTimeSend[0])*1000)-(millis()-tiempoReiniciar3))/1000)+tiempoFlechas;
       
@@ -987,12 +1019,20 @@ void enviarArduinoTimeStart(String timeSend)
     } 
     else
     {
-      print("la cantidad de variables de tiempo no cerresponde a la cantidad de pines a activar"); 
+      println("la cantidad de variables de tiempo no corresponde a la cantidad de pines a activar");
+      println("parametros finales "+ mensajeTimePrendido.length);
+      println("cantidad de pines " + (totalBytes));
+      println("buff " + msnUnidoArduino);
+      
+      for (int i = 0; i<datoSend.length; i++)
+      {
+        println(datoSend[i]); 
+      }
     }
   }
   else
   {
-    print("la cantidad de variables del primer parametro sólo debe ser 1 antes del  simbolo |"); 
+    println("la cantidad de variables del primer parametro sólo debe ser 1 antes del  simbolo |"); 
   }
 }
 

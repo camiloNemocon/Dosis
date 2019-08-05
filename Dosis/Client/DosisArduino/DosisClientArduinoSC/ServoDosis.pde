@@ -2,13 +2,23 @@
 
 class ServoDosis
 { 
-  
+   boolean continuar = true;
+   
+   //indica cuando llega al angulo 0 para iniciar a girar en el estado 0
+   boolean continuarEstado0 = true;
+   
+   //indica cuando llega al angulo 0 para iniciar a girar en el estado 2
+   boolean continuarEstado2 = true;
+   
+   //indica cuando cada cuanto generar el giro
+   boolean continuarEstado3 = true;
+   
+  //indica cuando el giro llega hasta 180 en el estado 1
+  int estadoGiroEstado1=1;
+   
   //pin al que esta conectado el servo  ServoDosis(int outputPin)
   int outputPin;
   
-  //indica cuando el giro llega hasta 180
-  boolean llego1=false;
-  boolean llego2=false;
   
   //int estado => estados desde el 0 hasta el 7, cada estado corresponde a una forma distinta de giro
   int estado;  
@@ -39,17 +49,17 @@ class ServoDosis
       println("El punto de inicio debe ser un numero menor a 180");
     }
     
-    if(estadoT > 7)
+    if(estadoT > 5)
     {
       puntoInicioT = 1; 
-      println("El estado va  desde 0 hasta 7, NO puede ser un número mayor a 7");
+      println("El estado va  desde 0 hasta 5, NO puede ser un número mayor a 5");
     }   
     
     outputPin = outputPinT;
     estado = estadoT;  
     puntoInicio = puntoInicioT;
     angulo = anguloT;
-    tEspera = tEsperaT;
+    tEspera = tEsperaT*1000;
     
     puntoInicioBK = puntoInicioT;
   
@@ -60,131 +70,147 @@ class ServoDosis
   //void update(int puntoInicio, int estado, int angulo, int tEspera)
   void update()
   {
+    //va desde el ptoInicio hasta angulo, cuando se devuelve rapido no llega al puntoInicio sino antes y luego si al puntoInicio, por esa razón se dejo predeterminado que se devuelva a 0
+    //va desde el 0 hasta angulo y se devuelve a 0 rápido (no se usa el último parametro, ni tampoco el segundo)
     if (estado == 0)
-    {      
-      if (puntoInicio < 180)
+    {
+      //println(puntoInicio);
+      if(continuarEstado0 == true)
       {
-        puntoInicio++;
-      } else
+        if (puntoInicio < angulo)
+        {
+            puntoInicio++;          
+        }
+      }
+       
+      if (puntoInicio == angulo)
       {
-        puntoInicio = puntoInicioBK;
+        continuarEstado0 = false;
+        puntoInicio = 0;
+      }
+      
+      if(puntoInicio == 0)
+      {
+          continuarEstado0 = true;
       }
     }
 
+    //va desde el ptoInicio hasta el angulo y se devuelve girando normal (no se usa el último parametro)
     if (estado == 1)
     {
-      if (puntoInicio < 180 && llego1==false)
-      {
-        puntoInicio++;
-      } else
-      {
-        puntoInicio--;
-      }
-
-      if (puntoInicio == 180)
-      {
-        llego1 = true;
-      }
-      if (puntoInicio == puntoInicioBK)
-      {
-        llego1 = false;
-      }
+       //println(puntoInicio);
+       if(puntoInicio==angulo)
+       {
+         estadoGiroEstado1=2; 
+       }
+        
+       if(puntoInicio==puntoInicioBK)
+       {
+         estadoGiroEstado1=1;
+       }
+        
+       if(estadoGiroEstado1==2)
+       {
+         puntoInicio--;
+       }
+       else
+       {
+         puntoInicio++;
+       }
     }
-
+    
+    // va desde en punto de inicio hasta 180 girando cada angulo indicado y se devuelve rápido, luego espera el tiempoEspera para volver a emprezar
     if (estado == 2)
-    {
-      if (puntoInicio < 180)
+    {      
+      //println(puntoInicio);
+      if(continuarEstado2 == true)
       {
-        if (millis() - tInicio > tEspera) 
+        if (puntoInicio < 180)
         {
-          puntoInicio += angulo;     
-          tInicio = millis();
-        }
-      } 
-      else
-      {
-        puntoInicio = puntoInicioBK;
-      }
-    }
-
-    if (estado == 3)
-    {
-      if (puntoInicio < 180 && llego2==false)
-      {
-        if (millis() - tInicio > tEspera) 
-        {
-          puntoInicio += angulo;     
-          tInicio = millis();
-        }
-      } 
-      else
-      {
-        if (millis() - tInicio > tEspera) 
-        {
-          puntoInicio -= angulo;     
-          tInicio = millis();
-        }
-      }
-
-      if (puntoInicio >= 180)
-      {
-        llego2 = true;
-      }
-      if (puntoInicio <= puntoInicioBK)
-      {
-        llego2 = false;
-      }
-    }
-    
-    
-    // va desde en punto de inicio hasta 180 girando cada angulo indicado
-    if (estado == 4)
-    {
-      if (puntoInicio < 180)
-      {
-          puntoInicio += angulo;
-          delay(100);
-      } 
-      else
-      {
-        puntoInicio = puntoInicioBK;
-      }
-    }
-    
-    // va desde el punto de inicio hasta el puno de inicio + el angulo dado y se devuelve el mismo angulo
-    if (estado == 5)
-    {
-      if(puntoInicioBK+angulo > 180)
-      {
-        println("la rotación desde el punto de inicio y el angulo excede los 180 grados");
-      }
-      else
-      {      
-        //println(puntoInicio);
-        if (puntoInicio < puntoInicioBK+angulo)
-        {
+          if(continuar == true)
+          {
             puntoInicio += angulo;
-            delay(200);
+            continuar = false;
+          }
+          else
+          {
+            if (millis() - tInicio > 200) 
+            {
+              continuar = true;     
+              tInicio = millis();
+            }  
+          }
         } 
         else
         {
-          puntoInicio -= angulo;
-          delay(200);
+          puntoInicio = puntoInicioBK;          
+          continuarEstado2 = false;                
+        }
+      }
+      else
+      {
+        if (millis() - tInicio > tEspera) 
+        {            
+          continuarEstado2 = true;
+          continuar = true;
+          tInicio = millis();
+        }    
+      }
+       
+     
+    }
+    
+    // va desde el punto de inicio hasta el angulo y se devuelve el mismo angulo para devolverce para el tiempo que se le determine
+    if (estado == 3)
+    {
+      //println(puntoInicio);
+      int ang = angulo-puntoInicioBK;
+      
+      if(continuarEstado3 == true)
+      {
+        if (puntoInicio < ang)
+        {
+            puntoInicio += ang;            
+        } 
+        else
+        {
+          if (millis() - tInicio > tEspera) 
+          {
+             continuarEstado3 = false;     
+             tInicio = millis();
+          }
+        }
+      }
+      else
+      {
+        if (puntoInicio > puntoInicioBK)
+        {
+          puntoInicio -= ang;
+        }
+        else
+        {
+          if (millis() - tInicio > tEspera) 
+          {
+            continuarEstado3 = true;     
+            tInicio = millis();
+          }
         }
       }      
     }
-
-    if (estado == 6)
+    
+    //va al angulo dado y se queda en esa ubicación (no usa el parametro 2, ni el ultimo 5)
+    if (estado == 4)
     {
       puntoInicio = angulo;
     }
 
-    if (estado == 7)
+    //va a la posición 0
+    if (estado == 5)
     {
       puntoInicio = 0;
     }
 
-    arduino.servoWrite(outputPin, puntoInicio);
+    arduino.servoWrite(outputPin, constrain(puntoInicio, 0, 180));
   }
   
 }
