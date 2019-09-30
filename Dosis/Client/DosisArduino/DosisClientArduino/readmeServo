@@ -3,10 +3,9 @@ To use a servo motor in Dosis, you need to typeWriting in Dosis interface
 
 
 
-servoArduino()
+ServoArduino()
 
 next outPin,ptoIn,state,ang,time
-
 
 
 

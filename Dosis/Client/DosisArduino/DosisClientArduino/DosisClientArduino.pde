@@ -10,8 +10,6 @@ import processing.serial.*;
 
 
 //------------------------Variables-------------------
-MsaFluids msaFluids;
-
 Arduino arduino;
 
 ServoDosis servoPin2;
@@ -20,6 +18,9 @@ ServoDosis servoPin7;
 ServoDosis servoPin8;
 ServoDosis servoPin12;
 ServoDosis servoPin13;
+
+StepperDosis motorPaso;
+boolean motorPasoActivo = false;
 
 boolean servoActivoPin2 = false;
 boolean servoActivoPin4 = false;
@@ -79,6 +80,7 @@ int contadorBytes = 0;
  
  int tempContador = 0;
  boolean activarArduino = false;
+ boolean activarArduino2 = false;
  
  //tiempo en que se envian los datos a Arduino para que prendan los pines al tiempo
  String timeSend = "";
@@ -100,6 +102,13 @@ int contadorBytes = 0;
  boolean empezar3 = false;
  // tiempo para TimeStart
  int tiempoReiniciar3 = 0;
+ 
+ //genera el envio de datos a Arduino para que se mantengan prendidos los pines todo el tiempo usando la funcion OnArduino
+ boolean enviarDatos4 = false;
+ IntList prendidos;
+
+ //genera el envio de datos a Arduino para que se apaguen los pines usando la funcion OffArduino
+ IntList apagados;
 
  //tiempo para same Time
  int[] tiempoReiniciar;
@@ -133,10 +142,7 @@ void setup()
   
   invWidth = 1.0f/width ;
   invHeight = 1.0f/( height/2 );
-  
-  //inicializa la visual de fluidos
-  msaFluids = new MsaFluids();
-  
+    
   //inicializa el arreglo de los mensajes a enviar
   codigosArduino = new ArrayList<String>();
   
@@ -144,7 +150,7 @@ void setup()
   println(Arduino.list());
   
   //puerto serial por donde le va a enviar los datos a arduino para Windows
-  arduino = new Arduino(this, Arduino.list()[0], 57600);
+  arduino = new Arduino(this, Arduino.list()[2], 57600);
   
   //puerto serial por donde le va a enviar los datos a arduino para MAC
   //arduino = new Arduino(this, "/dev/cu.usbmodem1411", 57600); 
@@ -168,9 +174,10 @@ void setup()
 
 //------------------------Draw-------------------
 void draw() 
-{
-  
-  msaFluids.update();
+{  
+  //fondo
+  fill(0);
+  rect(0, 0, width, (height/2)-50);
   
   //color para titilar el cuadrado
   if((millis() % 500) < 250)
@@ -228,6 +235,11 @@ void draw()
     enviarArduinoTimeStart(timeSend);
   }
   
+  if(enviarDatos4==true)
+  {
+    prenderArduino();
+  }
+    
   if(servoActivoPin2==true)
   {
     servoPin2.update();
@@ -251,6 +263,11 @@ void draw()
   if(servoActivoPin13==true)
   {
     servoPin13.update();
+  }
+  
+  if(motorPasoActivo==true)
+  {
+    motorPaso.update();
   }
   
   //test pines numeros
@@ -312,6 +329,23 @@ void enviarArduino()
   }
  
 }
+
+void prenderArduino()
+{
+  for(int i=0; i<prendidos.size(); i++)
+  {    
+    arduino.digitalWrite(prendidos.get(i), Arduino.HIGH);
+  }
+}
+
+void apagarArduino()
+{
+  for(int i=0; i<apagados.size(); i++)
+  {
+    arduino.digitalWrite(apagados.get(i), Arduino.LOW);
+  }
+}
+
 
 
 void keyPressed()
@@ -395,7 +429,11 @@ void keyPressed()
         if(buff.equals("Servo"))
         {
           palabraInstruccion = 16; 
-        }    
+        }
+        if(buff.equals("Paso"))
+        {
+          palabraInstruccion = 18; 
+        }        
       }
       
       if(tecladoLive == false)
@@ -492,15 +530,15 @@ void instrucciones()
   }
   else if(palabraInstruccion == 16)
   {
-    textSize(25);
-    text("ServoArduino()",10,630);
-    textSize(16);
-    text("Ej: ServoArduino()             outPin,ptoIn,estado,ang ",140,630);
-    text("int outPin => pin al que esta conectado el servo",10,650);
-    text("int ptoIn => donde empieza el giro (usado en el estado: 1,2,3)",10,670);
-    text("int estado => estados desde el 0 hasta el 5",10,690);
-    text("int ang => donde termina o el angulo de giro (usado en el estado: 0,1,2,3,4)",10,710);
-    text("int tiempo en millisegundos (usado en el estado: 2,3)",10,730);
+    textSize(22);
+    text("ServoArduino() outPin,ptoIn,estado,ang,tiempo",10,620);
+    textSize(14);
+    text("Ej: ServoArduino()          2,1,0,70,0 ",10,640);
+    text("int outPin => pin al que esta conectado el servo",10,660);
+    text("int ptoIn => donde empieza el giro (usado en el estado: 1,2,3)",10,680);
+    text("int estado => estados desde el 0 hasta el 5",10,700);
+    text("int ang => donde termina o el angulo de giro (usado en el estado: 0,1,2,3,4)",10,720);
+    text("int tiempo => (usado en el estado: 2,3)",10,740);
     textSize(25);
     text("         ",10,750);
   }
@@ -518,6 +556,49 @@ void instrucciones()
     textSize(25);
     text("         ",10,770);
   }
+  else if(palabraInstruccion == 18)
+  {
+    textSize(25);
+    text("PasoArduino()",10,630);
+    textSize(16);
+    text("Ej: PasoArduino()   in1,in2,in3,in4,analog,estado,vel",140,630);
+    text("Ej: 2,3,4,5,0,3,5",10,650);
+    text("int in => pin al que esta conectado el paso a paso",10,670);
+    text("int analog => pin al que esta conectado el pulsador",10,690);
+    text("int estado => estados desde el 0 hasta el 3",10,710);
+    text("int vel => velocidad para rotar, 3 hasta 11",10,730);
+    textSize(25);
+    text("         ",10,750);
+  }
+  else if(palabraInstruccion == 19)
+  {
+    textSize(20);
+    text("PasoArduino()",10,620);
+    textSize(14);
+    text("estado=0 (no gira, detiene el motor)",10,640);
+    text("estado=1 (giro a la derecha y para presionando pulsador)",10,660);
+    text("estado=2 (giro a la izquierda y para presionando pulsador)",10,680);
+    text("estado=3 (giro a una lado y luego al otro cuando presiona el pulsador)",10,700);
+    textSize(25);
+    text("         ",10,770);
+  }
+  if(palabraInstruccion == 20)
+  {
+    textSize(25);
+    text("OnArduino() => prende los pines escritos",10,630);
+    
+    textSize(16);
+    text("Ej: OnArduino()      7,8,9    (pines)",10,650);
+    
+    textSize(25);
+    text("OffArduino() => apaga los pines escritos",10,680);
+    
+    textSize(16);
+    text("Ej: OffArduino()      7,8,9    (pines)",10,700);
+    
+    textSize(25);    
+    text("  ",10,730);
+  }
   
 }
 
@@ -534,7 +615,26 @@ void keyReleased()
     //adiciona el string al arreglo de mensajes enviados para dibujarlos
     codigos.add(buff); 
     
-   
+    if(buff.equals("PasoArduino()"))
+    {  
+      buff = "";
+      buff1 = "";
+      buff2 = "";
+      tempSendParameter = 4;
+      datosArduino1(tempSendParameter);  
+   //   timeSend="";      
+    }
+    
+    if(buff.equals("ServoArduino()"))
+    {  
+      buff = "";
+      buff1 = "";
+      buff2 = "";
+      tempSendParameter = 3;
+      datosArduino1(tempSendParameter);  
+      //timeSend="";
+    }
+    
     if(buff.equals("PararArduino()"))
     {
       stopArduino();
@@ -542,25 +642,36 @@ void keyReleased()
     
     if(buff.equals("Teclado()"))
     {
-       stopArduino();
+       //stopArduino();
        tecladoLive = true; 
     }
     
     if(buff.equals("PararTeclado()"))
     {
-       stopArduino();
+       //stopArduino();
        tecladoLive = false; 
     }
     
-    if(buff.equals("ServoArduino()"))
+    if(buff.equals("OnArduino()"))
     {  
       //stopArduino();
       buff = "";
       buff1 = "";
       buff2 = "";
-      tempSendParameter = 3;
-      datosArduino(tempSendParameter);  
-      timeSend="";
+      tempSendParameter = 5;
+      datosArduino1(tempSendParameter);  
+      //timeSend="";
+    }
+    
+    if(buff.equals("OffArduino()"))
+    {  
+      //stopArduino();
+      buff = "";
+      buff1 = "";
+      buff2 = "";
+      tempSendParameter = 6;
+      datosArduino1(tempSendParameter);  
+      //timeSend="";
     }
     
     if(buff.equals("LoopArduino()"))
@@ -626,7 +737,11 @@ void keyReleased()
         }
     }
     
-
+    if(!buff.equals("") && activarArduino2 == true)
+    {
+      datosArduino1(tempSendParameter);
+    }
+    
     if(!buff.equals("") && activarArduino == true)
     {
       datosArduino(tempSendParameter);
@@ -670,7 +785,7 @@ void keyReleased()
     
     palabraInstruccion ++;
     
-    if(palabraInstruccion > 17)
+    if(palabraInstruccion > 20)
     {
       palabraInstruccion = 13;
     }
@@ -682,7 +797,7 @@ void keyReleased()
     
     if(palabraInstruccion < 13)
     {
-      palabraInstruccion = 17;
+      palabraInstruccion = 20;
     }
   }
   
@@ -716,9 +831,11 @@ void keyReleased()
 void stopArduino()
 {
   activarArduino = false;
+  activarArduino2 = false;
   enviarDatos = false;
   enviarDatos2 = false;
   enviarDatos3 = false;
+  enviarDatos4 = false;
   
   servoActivoPin2 = false;
   servoActivoPin4 = false;
@@ -727,17 +844,80 @@ void stopArduino()
   servoActivoPin12 = false;
   servoActivoPin13 = false;
   
-  for (int i = 0; i <= 22; i++)
+  motorPasoActivo = false;
+  
+  for (int i = 0; i <= 13; i++)
   {
     //apago todos lo pines
     arduino.digitalWrite(i, Arduino.LOW);
+  }
+  for (int i = 0; i <= 5; i++)
+  {
     arduino.analogWrite( i, 0 );
   } 
 }
 
+void datosArduino1(int sendTime)
+{ 
+  if(!buff2.equals(""))      
+  {      
+    if(sendTime==3)
+    {
+      servo(buff2);
+    }
+    if(sendTime==4)
+    {
+      MotorpasoApaso(buff2);     
+    }    
+    if(sendTime==5)
+    {      
+      String[] mensajeDatos1;
+    
+      mensajeDatos1 = split(buff2,',');      
+      
+      prendidos = new IntList();
+      
+      for(int i=0; i<mensajeDatos1.length; i++)
+      {
+        prendidos.append(int(mensajeDatos1[i]));
+      }
+       
+      enviarDatos4 = true;
+    }
+    
+    if(sendTime==6)
+    {
+      if(enviarDatos4 == true)
+      {
+        String[] mensajeDatos1;
+      
+        mensajeDatos1 = split(buff2,',');      
+        
+        apagados = new IntList();
+        
+        for(int i=0; i<mensajeDatos1.length; i++)
+        {
+          apagados.append(int(mensajeDatos1[i]));
+        }
+        
+        for(int k=0; k<prendidos.size(); k++)
+        {
+          if(apagados.hasValue(prendidos.get(k)) == true) 
+          {
+            prendidos.remove(k); 
+          } 
+        }
+        
+        apagarArduino();
+      }
+    }
+  }
+    
+  activarArduino2 = true;  
+}
 
 void datosArduino(int sendTime)
-{    
+{ 
   if(!buff2.equals(""))      
   {    
    //adiciona el string al arreglo de mensajes enviados para enviarlos a Arduino
@@ -809,34 +989,47 @@ void datosArduino(int sendTime)
     contadorBytes = 0;
     
     
-    if(sendTime == 0)
+    if(sendTime==0)
     {
       enviarDatos = true;
     }
-    else if(sendTime == 1)
+    if(sendTime==1)
     {
       enviarDatos2 = true;
     }
-    else if(sendTime == 2)
+    if(sendTime==2)
     {
       enviarDatos3 = true;
     }
-    else if(sendTime == 3)
-    {
-      servo();
-    }
-  }
+  } 
   
   activarArduino = true;
 }
 
-void servo()
+void MotorpasoApaso(String data)
 {
-    //println(msnUnidoArduino);
+   String[] mensajeDatos1;
     
+   mensajeDatos1 = split(data,',');
+   
+  //si la cantidad de parametros son correctos  
+  if(mensajeDatos1.length == 7)
+  {
+    motorPaso = new StepperDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]),int(mensajeDatos1[5]),int(mensajeDatos1[6]));
+    motorPasoActivo = true;
+  }  
+  else
+  {
+    println("Son 7 parametros: pinOut1,pinOut2,pinOut3,pinOut4,pinIn1,Estado,Vel");
+  }
+  
+}
+
+void servo(String data)
+{
     String[] mensajeDatos1;
     
-    mensajeDatos1 = split(msnUnidoArduino,',');
+    mensajeDatos1 = split(data,',');
     
     //si la cantidad de parametros son correctos  
     if(mensajeDatos1.length == 5)
@@ -1034,19 +1227,4 @@ void enviarArduinoTimeStart(String timeSend)
   {
     println("la cantidad de variables del primer parametro sólo debe ser 1 antes del  simbolo |"); 
   }
-}
-
-
-  
-void mouseMoved() 
-{
-    if(mouseY < (height/2)-60 && mouseY > 0)
-    {
-      float mouseNormX = mouseX * invWidth;
-      float mouseNormY = mouseY * invHeight;
-      float mouseVelX = (mouseX - pmouseX) * invWidth;
-      float mouseVelY = (mouseY - pmouseY) * invHeight;
-  
-      msaFluids.addForce(mouseNormX, mouseNormY, mouseVelX, mouseVelY);
-    }   
 }
