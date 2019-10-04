@@ -418,7 +418,7 @@ void keyPressed()
           tecladoLive = false;
           palabraInstruccion = 13; 
         }        
-        else if (buff.equals("Same") ||  buff.equals("TimeS"))
+        else if (buff.equals("Same") ||  buff.equals("Time"))
         {
           palabraInstruccion = 14;
         }
@@ -433,7 +433,12 @@ void keyPressed()
         if(buff.equals("Paso"))
         {
           palabraInstruccion = 18; 
-        }        
+        }
+        if(buff.equals("On") || buff.equals("Off"))
+        {
+          palabraInstruccion = 20; 
+        }
+        
       }
       
       if(tecladoLive == false)
@@ -845,7 +850,7 @@ void stopArduino()
   servoActivoPin13 = false;
   
   motorPasoActivo = false;
-  
+    
   for (int i = 0; i <= 13; i++)
   {
     //apago todos lo pines
@@ -1137,10 +1142,10 @@ void enviarArduinoSameTime(String timeSend)
     println("cantidad de pines " + (totalBytes));
     println("buff " + msnUnidoArduino);
     
-    for (int i = 0; i<datoSend.length; i++)
+    /*for (int i = 0; i<datoSend.length; i++)
     {
       println(datoSend[i]); 
-    }
+    }*/
   }  
 }
 
