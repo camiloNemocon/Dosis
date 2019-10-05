@@ -12,6 +12,10 @@ import processing.serial.*;
 //------------------------Variables-------------------
 Arduino arduino;
 
+
+//Port numbre Arduino///////////////////////////////////
+int portArduino = 0;
+
 ServoDosis servoPin2;
 ServoDosis servoPin4;
 ServoDosis servoPin7;
@@ -150,7 +154,7 @@ void setup()
   println(Arduino.list());
   
   //puerto serial por donde le va a enviar los datos a arduino para Windows
-  arduino = new Arduino(this, Arduino.list()[2], 57600);
+  arduino = new Arduino(this, Arduino.list()[portArduino], 57600);
   
   //puerto serial por donde le va a enviar los datos a arduino para MAC
   //arduino = new Arduino(this, "/dev/cu.usbmodem1411", 57600); 

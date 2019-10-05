@@ -1,4 +1,10 @@
-To use Arduino with Dosis Interface, you need to typeWriting
+To use Arduino with Dosis Interface, open code and modify the port that you connect Arduino
+int portArduino = 0; 
+
+This variable is used in
+arduino = new Arduino(this, Arduino.list()[portArduino], 57600);
+  
+Run DosisClientArduino and typeWriting on interface:
 
 OnceArduino() => to send data to Arduino, and Arduino once turn on the pins that you typeWitre after you put this code. 
 
