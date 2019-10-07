@@ -626,6 +626,11 @@ void keyReleased()
     
     if(buff.equals("PasoArduino()"))
     {  
+      if(tecladoLive == true)
+      {
+        tecladoLive = false;  
+      }
+      
       buff = "";
       buff1 = "";
       buff2 = "";
@@ -636,6 +641,11 @@ void keyReleased()
     
     if(buff.equals("ServoArduino()"))
     {  
+      if(tecladoLive == true)
+      {
+        tecladoLive = false;  
+      }
+      
       buff = "";
       buff1 = "";
       buff2 = "";
@@ -646,6 +656,11 @@ void keyReleased()
     
     if(buff.equals("PararArduino()"))
     {
+      if(tecladoLive == true)
+      {
+        tecladoLive = false;  
+      }
+      
       stopArduino();
     }
     
@@ -839,6 +854,22 @@ void keyReleased()
 
 void stopArduino()
 {
+  /*
+  if(motorPasoActivo == false)
+  {
+    for (int i = 0; i <= 5; i++)
+    {
+      arduino.analogWrite( i, 0 );
+    } 
+  }
+  else */
+  
+  if(motorPasoActivo == true)
+  {
+    motorPaso.pararMotorPaso();
+    motorPasoActivo = false;
+  } 
+  
   activarArduino = false;
   activarArduino2 = false;
   enviarDatos = false;
@@ -851,19 +882,15 @@ void stopArduino()
   servoActivoPin7 = false;
   servoActivoPin8 = false;
   servoActivoPin12 = false;
-  servoActivoPin13 = false;
+  servoActivoPin13 = false;  
   
-  motorPasoActivo = false;
-    
+  
   for (int i = 0; i <= 13; i++)
   {
     //apago todos lo pines
     arduino.digitalWrite(i, Arduino.LOW);
   }
-  for (int i = 0; i <= 5; i++)
-  {
-    arduino.analogWrite( i, 0 );
-  } 
+  
 }
 
 void datosArduino1(int sendTime)
@@ -938,7 +965,7 @@ void datosArduino(int sendTime)
     {
       //apago todos lo pines
       arduino.digitalWrite(i, Arduino.LOW);
-      arduino.analogWrite( i, 0 );
+      //arduino.analogWrite( i, 0 );
     }
     
     if(codigosArduino.size()>0)

@@ -85,7 +85,7 @@ class StepperDosis
     }
     else if (estado == 0)
     {
-      pararMotorPaso(outputPin1,outputPin2,outputPin3,outputPin4);
+      pararMotorPaso();
     }
     
   }
@@ -641,13 +641,14 @@ class StepperDosis
       
     }        
   }
+  
    
-   void pararMotorPaso(int pinA,int pinB, int pinC, int pinD)
+   void pararMotorPaso()
    {
-        arduino.digitalWrite(pinA,Arduino.LOW);
-        arduino.digitalWrite(pinB,Arduino.LOW); 
-        arduino.digitalWrite(pinC,Arduino.LOW ); 
-        arduino.digitalWrite(pinD,Arduino.LOW );
+        arduino.digitalWrite(outputPin1,Arduino.LOW);
+        arduino.digitalWrite(outputPin2,Arduino.LOW); 
+        arduino.digitalWrite(outputPin3,Arduino.LOW ); 
+        arduino.digitalWrite(outputPin4,Arduino.LOW );
         for(int i = 0; i<6; i++)
         {
          analogData[i] = 10; 
