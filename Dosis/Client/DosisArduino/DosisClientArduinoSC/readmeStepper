@@ -1,0 +1,25 @@
+
+To use a stepper motor in Dosis, you need to use 28BYJ-48 Stepper Motor 5v with ULN2003 driver. In Dosis interface you need to typeWriting:
+
+
+PasoArduino()
+
+next outPin1,outPin2,outPin3,outPin4,inAnalogPin,state,velocity
+
+
+//int outPin => 4 digital pin connect to Stepper on Arduino Board
+
+//int inAnalogPin => 1 analog pin connect to push button 
+
+//int state => 4 states, since 0 to 3, each state generate the direction of the motor rotation.
+
+//int velocity => the velocity is from 3 to 11, the rotaion is slowly 
+
+
+state=0 (stop stepper motor)
+
+state=1 (right direction of the rotation and when push button is pressed stop stepper motor)
+
+state=2 (left direction of the rotation and when push button is pressed stop stepper motor)
+
+state=3 (rotate all the tiem on one direction and when push button is pressed, the direction of the rotation change) 

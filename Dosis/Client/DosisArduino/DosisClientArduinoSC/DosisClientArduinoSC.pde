@@ -1,4 +1,4 @@
-
+   
 //julio 2018
 //By. Camilo Nemocon
 
@@ -7,18 +7,19 @@ import cc.arduino.*;
 import org.firmata.*;
 import processing.serial.*;
 import processing.serial.*;
-
 import oscP5.*;
 import netP5.*;
 
+
 //------------------------Variables-------------------
+Arduino arduino;
 OscP5 oscP5;
 NetAddress dosisConection;
 NetAddress superColliderConection;
 
-MsaFluids msaFluids;
 
-Arduino arduino;
+//Port numbre Arduino///////////////////////////////////
+int portArduino = 0;
 
 ServoDosis servoPin2;
 ServoDosis servoPin4;
@@ -27,14 +28,15 @@ ServoDosis servoPin8;
 ServoDosis servoPin12;
 ServoDosis servoPin13;
 
+StepperDosis motorPaso;
+boolean motorPasoActivo = false;
+
 boolean servoActivoPin2 = false;
 boolean servoActivoPin4 = false;
 boolean servoActivoPin7 = false;
 boolean servoActivoPin8 = false;
 boolean servoActivoPin12 = false;
 boolean servoActivoPin13 = false;
-
-
 
 // inverse of screen dimensions
 float invWidth, invHeight;    
@@ -73,11 +75,7 @@ boolean enviarDatos = false;
 boolean enviarDatosEnter = false;
 
 //manejo del envio de los datos a arduino cada medio segundo
-int tiempoEsperaSC = 500 ; 
-int tiempoInicioSC = 0;
-
-//manejo del envio de los datos a arduino cada medio segundo
-int tiempoEspera = 500 ; 
+int tiempoEspera = 500; 
 int tiempoInicio = 0;
 
 int totalBytes = 12;
@@ -91,6 +89,7 @@ int contadorBytes = 0;
  
  int tempContador = 0;
  boolean activarArduino = false;
+ boolean activarArduino2 = false;
  
  //tiempo en que se envian los datos a Arduino para que prendan los pines al tiempo
  String timeSend = "";
@@ -98,53 +97,49 @@ int contadorBytes = 0;
  //genera el envio de datos a Arduino para que prendan los pines al tiempo usando la funcion SameTime
  boolean enviarDatos2 = false;
  
- //envia los datos del mouse a Dosis server
-boolean sendComunicacionMouse = false;
+ //determina si usa el teclado para activar el arduino en vivo
+ boolean tecladoLive = false;
 
-//envia los datos del mouse y pmouse
-boolean sendComunicacionMouse2 = false;
+ //Tecla del teclado para tecladoLive
+ String TeclaLive;
 
-//envia los datos del mouse a SuperCollider
-boolean sendComunicacionMouseSC = false;
+ //variable que determina si se envia loopArduino o sameTime o TimeStart
+ int tempSendParameter = 0;
 
-//envia los datos escritos a SuperCollider
-boolean sendComunicacionCodSC = false;
+ //genera el envio de datos a Arduino para que prendan los pines al tiempo usando la funcion TimeStart
+ boolean enviarDatos3 = false;
+ boolean empezar3 = false;
+ // tiempo para TimeStart
+ int tiempoReiniciar3 = 0;
+ 
+ //genera el envio de datos a Arduino para que se mantengan prendidos los pines todo el tiempo usando la funcion OnArduino
+ boolean enviarDatos4 = false;
+ IntList prendidos;
 
-//envia el mensaje del mouse a super collider cada medio segundo
-boolean enviaMsn = true;
+ //genera el envio de datos a Arduino para que se apaguen los pines usando la funcion OffArduino
+ IntList apagados;
 
-//si se envia el mensaje SC 
-boolean codSC = false; 
-boolean mensajeValido = false;
+ //tiempo para same Time
+ int[] tiempoReiniciar;
+ boolean empezar = false;
 
-//guarda el mensaje que va a enviar a SC
-int msnSC = 0;
+ //tiempo que mantiene prendido los pines y que se reinicia 
+ int[] tiempoReiniciarV2;
 
-//determina si usa el teclado para activar el arduino en vivo
-boolean tecladoLive = false;
+ //manejo del envio de los datos a arduino cada tanto tiempo, donde este tiempo se puede modificar con las flechas
+ int tiempoFlechas = 0;
 
-//Tecla del teclado para tecladoLive
-String TeclaLive;
-
-//variable que determina si se envia loopArduino o sameTime o TimeStart
-int tempSendParameter = 0;
-
-//genera el envio de datos a Arduino para que prendan los pines al tiempo usando la funcion TimeStart
-boolean enviarDatos3 = false;
-boolean empezar3 = false;
-// tiempo para TimeStart
-int tiempoReiniciar3 = 0;
-
-//tiempo para same Time
-int[] tiempoReiniciar;
-boolean empezar = false;
-
-//tiempo que mantiene prendido los pines y que se reinicia 
-int[] tiempoReiniciarV2;
-
-//manejo del envio de los datos a arduino cada tanto tiempo, donde este tiempo se puede modificar con las flechas
-int tiempoFlechas = 0;
-
+  //envia los datos del mouse a SuperCollider
+  boolean sendComunicacionMouseSC = false;
+  
+  //envia el mensaje del mouse a super collider cada medio segundo
+  boolean enviaMsn = true;
+  
+  //dato que recibe de superCollider
+  int datoSC = 0;
+  
+  //genera el envio de datos a Arduino para que prendan los pines que recive de SuperCollider
+  boolean enviarDatos5 = true;
  
 //------------------------Setup-------------------
 void setup() 
@@ -167,11 +162,7 @@ void setup()
   
   invWidth = 1.0f/width ;
   invHeight = 1.0f/( height/2 );
-  //invHeight = 1.0f/( height/2 )-10;
     
-  //inicializa la visual de fluidos
-  msaFluids = new MsaFluids();
-  
   //inicializa el arreglo de los mensajes a enviar
   codigosArduino = new ArrayList<String>();
   
@@ -179,7 +170,7 @@ void setup()
   println(Arduino.list());
   
   //puerto serial por donde le va a enviar los datos a arduino para Windows
-  arduino = new Arduino(this, Arduino.list()[0], 57600);
+  arduino = new Arduino(this, Arduino.list()[portArduino], 57600);
   
   //puerto serial por donde le va a enviar los datos a arduino para MAC
   //arduino = new Arduino(this, "/dev/cu.usbmodem1411", 57600); 
@@ -196,6 +187,9 @@ void setup()
   
   stopArduino();
   
+  tiempoReiniciar = new int [9];    
+  tiempoReiniciarV2 = new int [9]; 
+  
   // start oscP5, listening for incoming messages at port 12000 
   oscP5 = new OscP5(this,12000);
   
@@ -206,16 +200,15 @@ void setup()
   //superColliderConection = new NetAddress("172.16.24.80",33333);
   superColliderConection = new NetAddress("localhost",33333);
   
-  tiempoReiniciar = new int [9];    
-  tiempoReiniciarV2 = new int [9];  
 }
 
 
 //------------------------Draw-------------------
 void draw() 
-{
-  
-  msaFluids.update();
+{  
+  //fondo
+  fill(0);
+  rect(0, 0, width, (height/2)-50);
   
   //color para titilar el cuadrado
   if((millis() % 500) < 250)
@@ -273,6 +266,11 @@ void draw()
     enviarArduinoTimeStart(timeSend);
   }
   
+  if(enviarDatos4==true)
+  {
+    prenderArduino();
+  }
+    
   if(servoActivoPin2==true)
   {
     servoPin2.update();
@@ -298,6 +296,43 @@ void draw()
     servoPin13.update();
   }
   
+  if(motorPasoActivo==true)
+  {
+    motorPaso.update();
+  }
+  
+  if(enviarDatos5==true)
+  {
+    SuperColliderToArduino();
+  }
+  
+  if(sendComunicacionMouseSC == true)
+  {
+    //cada medio segundo envia el mensaje a super collider
+    if (millis() - tiempoInicio > tiempoEspera) 
+    {
+      if(enviaMsn == true)
+      {
+        //crea un mensaje osc
+        OscMessage myMessage3 = new OscMessage("/DosisComunicacionSC");
+        
+        myMessage3.add(mouseX);
+        myMessage3.add(mouseY);
+          
+        //envia el mensaje osc a supercollider
+        oscP5.send(myMessage3, superColliderConection);  
+        
+        //apenas envie el mensaje deje de enviar hasta que pase el tiempo para volver a enviar el mensaje
+        enviaMsn=false;
+      }    
+      tiempoInicio = millis();
+    }
+    else
+    {
+       enviaMsn = true;
+    }  
+  }
+  
   //test pines numeros
   /*for( int i = 2; i < 10; i++ ) 
   { 
@@ -310,6 +345,7 @@ void draw()
   { 
         arduino.digitalWrite( i, Arduino.HIGH );
   }*/
+  
   
   
 }
@@ -357,6 +393,23 @@ void enviarArduino()
  
 }
 
+void prenderArduino()
+{
+  for(int i=0; i<prendidos.size(); i++)
+  {    
+    arduino.digitalWrite(prendidos.get(i), Arduino.HIGH);
+  }
+}
+
+void apagarArduino()
+{
+  for(int i=0; i<apagados.size(); i++)
+  {
+    arduino.digitalWrite(apagados.get(i), Arduino.LOW);
+  }
+}
+
+
 
 void keyPressed()
 {  
@@ -364,7 +417,6 @@ void keyPressed()
     k = (char)key;
     
     TeclaLive = str(k);
-    
     
     switch(k)
     {    
@@ -377,8 +429,9 @@ void keyPressed()
       
       if(buff2.length()>0)
       {
-         buff2 = buff2.substring(0,buff2.length()-2);
-      }      
+         //buff2 = buff2.substring(0,buff2.length()-2);
+         buff2 = buff2.substring(0,buff2.length()-1);
+      } 
       
       if(buff.length()>0)
       {
@@ -427,24 +480,32 @@ void keyPressed()
         {
           tecladoLive = false;
           palabraInstruccion = 13; 
-        }      
-        else if (buff.equals("Same") ||  buff.equals("TimeS"))
+        }        
+        else if (buff.equals("Same") ||  buff.equals("Time"))
         {
-          palabraInstruccion = 14; 
-        }
-        else if(buff.equals("Super"))
-        {
-          tecladoLive = false;
-          palabraInstruccion = 12; 
+          palabraInstruccion = 14;
         }
         else if(buff.equals("Tecla")|| buff.equals("PararT"))
         {
           palabraInstruccion = 15; 
-        }    
+        }
         if(buff.equals("Servo"))
         {
           palabraInstruccion = 16; 
-        } 
+        }
+        if(buff.equals("Paso"))
+        {
+          palabraInstruccion = 18; 
+        }
+        if(buff.equals("On") || buff.equals("Off"))
+        {
+          palabraInstruccion = 20; 
+        }
+        if(buff.equals("superCollider"))
+        {
+          palabraInstruccion = 21; 
+        }
+        
       }
       
       if(tecladoLive == false)
@@ -464,13 +525,13 @@ void keyPressed()
         
       break;
     }
-    
 }
 
 
 //muestra los mensajes enviados a costado derecho del canvas
 void historialCodigo()
 {
+  textSize(25);
     //color y ubicación de cada letra que se coloca
     fill(#45DB0B);
     //dibuja cada texto enviado uno debajo del otro
@@ -514,12 +575,6 @@ void instrucciones()
     textSize(25);    
     text("PararArduino() => para el envio de la data",10,730);
   }
-  else if(palabraInstruccion == 12)
-  {
-    textSize(25);
-    text("SuperColliderMouse() =>envia la pos mouse (x,y)",10,630);
-    text("SuperColliderCod(int) =>envia int a SuperCollider",10,660);
-  }
   if(palabraInstruccion == 14)
   {
     textSize(25);
@@ -547,15 +602,15 @@ void instrucciones()
   }
   else if(palabraInstruccion == 16)
   {
-    textSize(25);
-    text("ServoArduino()",10,630);
-    textSize(16);
-    text("Ej: ServoArduino()             outPin,ptoIn,estado,ang ",140,630);
-    text("int outPin => pin al que esta conectado el servo",10,650);
-    text("int ptoIn => donde empieza el giro (usado en el estado: 1,2,3)",10,670);
-    text("int estado => estados desde el 0 hasta el 5",10,690);
-    text("int ang => donde termina o el angulo de giro (usado en el estado: 0,1,2,3,4)",10,710);
-    text("int tiempo en millisegundos (usado en el estado: 2,3)",10,730);
+    textSize(22);
+    text("ServoArduino() outPin,ptoIn,estado,ang,tiempo",10,620);
+    textSize(14);
+    text("Ej: ServoArduino()          2,1,0,70,0 ",10,640);
+    text("int outPin => pin al que esta conectado el servo",10,660);
+    text("int ptoIn => donde empieza el giro (usado en el estado: 1,2,3)",10,680);
+    text("int estado => estados desde el 0 hasta el 5",10,700);
+    text("int ang => donde termina o el angulo de giro (usado en el estado: 0,1,2,3,4)",10,720);
+    text("int tiempo => (usado en el estado: 2,3)",10,740);
     textSize(25);
     text("         ",10,750);
   }
@@ -573,6 +628,54 @@ void instrucciones()
     textSize(25);
     text("         ",10,770);
   }
+  else if(palabraInstruccion == 18)
+  {
+    textSize(25);
+    text("PasoArduino()",10,630);
+    textSize(16);
+    text("Ej: PasoArduino()   in1,in2,in3,in4,analog,estado,vel",140,630);
+    text("Ej: 2,3,4,5,0,3,5",10,650);
+    text("int in => pin al que esta conectado el paso a paso",10,670);
+    text("int analog => pin al que esta conectado el pulsador",10,690);
+    text("int estado => estados desde el 0 hasta el 3",10,710);
+    text("int vel => velocidad para rotar, 3 hasta 11",10,730);
+    textSize(25);
+    text("         ",10,750);
+  }
+  else if(palabraInstruccion == 19)
+  {
+    textSize(20);
+    text("PasoArduino()",10,620);
+    textSize(14);
+    text("estado=0 (no gira, detiene el motor)",10,640);
+    text("estado=1 (giro a la derecha y para presionando pulsador)",10,660);
+    text("estado=2 (giro a la izquierda y para presionando pulsador)",10,680);
+    text("estado=3 (giro a una lado y luego al otro cuando presiona el pulsador)",10,700);
+    textSize(25);
+    text("         ",10,770);
+  }
+  if(palabraInstruccion == 20)
+  {
+    textSize(25);
+    text("OnArduino() => prende los pines escritos",10,630);
+    
+    textSize(16);
+    text("Ej: OnArduino()      7,8,9    (pines)",10,650);
+    
+    textSize(25);
+    text("OffArduino() => apaga los pines escritos",10,680);
+    
+    textSize(16);
+    text("Ej: OffArduino()      7,8,9    (pines)",10,700);
+    
+    textSize(25);    
+    text("  ",10,730);
+  }
+  else if(palabraInstruccion == 21)
+  {
+    textSize(25);
+    text("superColliderMouse() =>envia la pos mouse (x,y)",10,630);
+  }
   
 }
 
@@ -585,31 +688,98 @@ void keyReleased()
   
   //cuando opriman enter
   if(keyCode==ENTER)
-  {
-    //crea un mensaje osc
-    OscMessage myMessage = new OscMessage("/comunicacion");
-
-    //adiciona el string al mensaje osc
-    myMessage.add(buff); 
-   
+  {    
     //adiciona el string al arreglo de mensajes enviados para dibujarlos
-    codigos.add(buff);   
+    codigos.add(buff); 
+    
+    if(buff.equals("superColliderMouse()"))
+    {
+      sendComunicacionMouseSC = true;
+    }
+    else
+    {
+      sendComunicacionMouseSC = false;
+    }
+    
+    if(buff.equals("fondo(5)"))
+    {
+      OscMessage myMessage = new OscMessage("/comunicación");
+      myMessage.add(buff);
+      oscP5.send(myMessage,dosisConection);
+    }    
+    
+    if(buff.equals("PasoArduino()"))
+    {  
+      if(tecladoLive == true)
+      {
+        tecladoLive = false;  
+      }
+      
+      buff = "";
+      buff1 = "";
+      buff2 = "";
+      tempSendParameter = 4;
+      datosArduino1(tempSendParameter);  
+   //   timeSend="";      
+    }
+    
+    if(buff.equals("ServoArduino()"))
+    {  
+      if(tecladoLive == true)
+      {
+        tecladoLive = false;  
+      }
+      
+      buff = "";
+      buff1 = "";
+      buff2 = "";
+      tempSendParameter = 3;
+      datosArduino1(tempSendParameter);  
+      //timeSend="";
+    }
     
     if(buff.equals("PararArduino()"))
     {
+      if(tecladoLive == true)
+      {
+        tecladoLive = false;  
+      }
+      
       stopArduino();
     }
     
     if(buff.equals("Teclado()"))
     {
-       stopArduino();
+       //stopArduino();
        tecladoLive = true; 
     }
     
     if(buff.equals("PararTeclado()"))
     {
-       stopArduino();
+       //stopArduino();
        tecladoLive = false; 
+    }
+    
+    if(buff.equals("OnArduino()"))
+    {  
+      //stopArduino();
+      buff = "";
+      buff1 = "";
+      buff2 = "";
+      tempSendParameter = 5;
+      datosArduino1(tempSendParameter);  
+      //timeSend="";
+    }
+    
+    if(buff.equals("OffArduino()"))
+    {  
+      //stopArduino();
+      buff = "";
+      buff1 = "";
+      buff2 = "";
+      tempSendParameter = 6;
+      datosArduino1(tempSendParameter);  
+      //timeSend="";
     }
     
     if(buff.equals("LoopArduino()"))
@@ -619,17 +789,6 @@ void keyReleased()
       buff1 = "";
       buff2 = "";
       tempSendParameter = 0;
-      datosArduino(tempSendParameter);  
-      timeSend="";
-    }
-    
-    if(buff.equals("ServoArduino()"))
-    {  
-      //stopArduino();
-      buff = "";
-      buff1 = "";
-      buff2 = "";
-      tempSendParameter = 3;
       datosArduino(tempSendParameter);  
       timeSend="";
     }
@@ -686,7 +845,11 @@ void keyReleased()
         }
     }
     
-
+    if(!buff.equals("") && activarArduino2 == true)
+    {
+      datosArduino1(tempSendParameter);
+    }
+    
     if(!buff.equals("") && activarArduino == true)
     {
       datosArduino(tempSendParameter);
@@ -710,54 +873,6 @@ void keyReleased()
       }
     }
     
-    
-    if(buff.equals("SuperColliderMouse()"))
-    {
-      sendComunicacionMouseSC = true;
-      sendComunicacionMouse = true;
-    }
-    else
-    {
-      //sendComunicacionMouseSC = false;
-      //sendComunicacionMouse = false; 
-    }
-    
-    if(buff.contains("SuperColliderCod("))
-    {      
-      String temp = "";
-      String[] mensaje;
-      
-      if(buff.substring(buff.length()-1).equals(")"))
-      {
-        temp = buff.substring(0,buff.length()-1);    
-        mensajeValido = true;
-      }
-  
-      if(mensajeValido == true )
-      {
-          mensaje = split(temp,'(');      
-            
-          //SI LLEGA ESA PALABRA ENTONCES VA A COLOCAR LAS PALABRAS
-          if (mensaje[0].equals("SuperColliderCod"))
-          {
-            if(int(mensaje[1])>0)
-            {
-              msnSC = int(mensaje[1]);
-            }
-            else
-            {
-               msnSC = 0;
-            }
-            sendComunicacionCodSC = true;
-          }
-      }
-  
-    }   
-    
-    //envia el mensaje osc
-    oscP5.send(myMessage, dosisConection); 
-       
-    
     //limpia los strings del mensaje que se envia y del que se aparece en el canvas
     buff = "";
     buff1 = "";
@@ -770,17 +885,17 @@ void keyReleased()
   
   
   if(keyCode==RIGHT)
-  {
+  {  
     if(palabraInstruccion == 0)
     {
-      palabraInstruccion = 12;
+      palabraInstruccion = 13;
     }
     
-     palabraInstruccion ++;
+    palabraInstruccion ++;
     
-    if(palabraInstruccion > 17)
+    if(palabraInstruccion > 21)
     {
-      palabraInstruccion = 12;
+      palabraInstruccion = 13;
     }
   }
   
@@ -788,9 +903,9 @@ void keyReleased()
   {
      palabraInstruccion --;
     
-    if(palabraInstruccion < 12)
+    if(palabraInstruccion < 13)
     {
-      palabraInstruccion = 17;
+      palabraInstruccion = 21;
     }
   }
   
@@ -799,11 +914,6 @@ void keyReleased()
     if(enviarDatos==true)
     {
       tiempoEspera = tiempoEspera + 50; 
-    }
-    
-    if(sendComunicacionMouseSC == true)
-    {
-      tiempoEsperaSC = tiempoEsperaSC + 50; 
     }
     
     if(enviarDatos2 == true || enviarDatos3 == true)
@@ -819,63 +929,115 @@ void keyReleased()
       tiempoEspera = tiempoEspera - 50; 
     }
     
-    if(sendComunicacionMouseSC == true)
-    {
-      tiempoEsperaSC = tiempoEsperaSC - 50; 
-    }
-    
     if(enviarDatos2 == true || enviarDatos3 == true)
     {
       tiempoFlechas = tiempoFlechas - 1;
     }
   }
-  
-  if(sendComunicacionCodSC == true)
-  {
-    //crea un mensaje osc
-    OscMessage myMessage3 = new OscMessage("/DosisComunicacionSC");
-    
-    myMessage3.add(msnSC);
-      
-    //envia el mensaje osc a supercollider
-    oscP5.send(myMessage3, superColliderConection);  
-    
-    //println("mensaje  : "+msnSC);
-    
-    //apenas envie el mensaje deje de enviar
-    sendComunicacionCodSC = false;
-    mensajeValido = false;
-  }
-    
-   
 }
 
 void stopArduino()
 {
+  /*
+  if(motorPasoActivo == false)
+  {
+    for (int i = 0; i <= 5; i++)
+    {
+      arduino.analogWrite( i, 0 );
+    } 
+  }
+  else */
+  
+  if(motorPasoActivo == true)
+  {
+    motorPaso.pararMotorPaso();
+    motorPasoActivo = false;
+  } 
+  
   activarArduino = false;
+  activarArduino2 = false;
   enviarDatos = false;
   enviarDatos2 = false;
   enviarDatos3 = false;
+  enviarDatos4 = false;
   
   servoActivoPin2 = false;
   servoActivoPin4 = false;
   servoActivoPin7 = false;
   servoActivoPin8 = false;
   servoActivoPin12 = false;
-  servoActivoPin13 = false;
+  servoActivoPin13 = false;  
   
-  for (int i = 0; i <= 22; i++)
+  
+  for (int i = 0; i <= 13; i++)
   {
     //apago todos lo pines
     arduino.digitalWrite(i, Arduino.LOW);
-    arduino.analogWrite( i, 0 );
-  } 
+  }
   
 }
 
+void datosArduino1(int sendTime)
+{ 
+  if(!buff2.equals(""))      
+  {      
+    if(sendTime==3)
+    {
+      servo(buff2);
+    }
+    if(sendTime==4)
+    {
+      MotorpasoApaso(buff2);     
+    }    
+    if(sendTime==5)
+    {      
+      String[] mensajeDatos1;
+    
+      mensajeDatos1 = split(buff2,',');      
+      
+      prendidos = new IntList();
+      
+      for(int i=0; i<mensajeDatos1.length; i++)
+      {
+        prendidos.append(int(mensajeDatos1[i]));
+      }
+       
+      enviarDatos4 = true;
+    }
+    
+    if(sendTime==6)
+    {
+      if(enviarDatos4 == true)
+      {
+        String[] mensajeDatos1;
+      
+        mensajeDatos1 = split(buff2,',');      
+        
+        apagados = new IntList();
+        
+        for(int i=0; i<mensajeDatos1.length; i++)
+        {
+          apagados.append(int(mensajeDatos1[i]));
+        }
+        
+        for(int k=0; k<prendidos.size(); k++)
+        {
+          if(apagados.hasValue(prendidos.get(k)) == true) 
+          {
+            prendidos.remove(k); 
+          } 
+        }
+        
+        apagarArduino();
+      }
+    }
+  }
+    
+  activarArduino2 = true;  
+}
 
 void datosArduino(int sendTime)
-{    
+{ 
   if(!buff2.equals(""))      
   {    
    //adiciona el string al arreglo de mensajes enviados para enviarlos a Arduino
@@ -887,7 +1049,7 @@ void datosArduino(int sendTime)
     {
       //apago todos lo pines
       arduino.digitalWrite(i, Arduino.LOW);
-      arduino.analogWrite( i, 0 );
+      //arduino.analogWrite( i, 0 );
     }
     
     if(codigosArduino.size()>0)
@@ -905,7 +1067,7 @@ void datosArduino(int sendTime)
     
     for (int i = 0; i<translate.length; i++)
     {
-      if(translate[i].equals("2") || translate[i].equals("3") || translate[i].equals("4") || translate[i].equals("5") || translate[i].equals("6") || translate[i].equals("7") || translate[i].equals("8") || translate[i].equals("9"))
+      if(translate[i].equals("2") || translate[i].equals("3") || translate[i].equals("4") || translate[i].equals("5") || translate[i].equals("6") || translate[i].equals("7") || translate[i].equals("8") || translate[i].equals("9")|| translate[i].equals("10")|| translate[i].equals("11")|| translate[i].equals("12")|| translate[i].equals("13"))
       {
         datoSend[i] = int(translate[i]); 
       }
@@ -947,35 +1109,47 @@ void datosArduino(int sendTime)
     contadorBytes = 0;
     
     
-    if(sendTime == 0)
+    if(sendTime==0)
     {
       enviarDatos = true;
     }
-    else if(sendTime == 1)
+    if(sendTime==1)
     {
       enviarDatos2 = true;
     }
-    else if(sendTime == 2)
+    if(sendTime==2)
     {
       enviarDatos3 = true;
     }
-    else if(sendTime == 3)
-    {
-      servo();
-    }
-  }
+  } 
   
   activarArduino = true;
 }
 
-
-void servo()
+void MotorpasoApaso(String data)
 {
-    //println(msnUnidoArduino);
+   String[] mensajeDatos1;
     
+   mensajeDatos1 = split(data,',');
+   
+  //si la cantidad de parametros son correctos  
+  if(mensajeDatos1.length == 7)
+  {
+    motorPaso = new StepperDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]),int(mensajeDatos1[5]),int(mensajeDatos1[6]));
+    motorPasoActivo = true;
+  }  
+  else
+  {
+    println("Son 7 parametros: pinOut1,pinOut2,pinOut3,pinOut4,pinIn1,Estado,Vel");
+  }
+  
+}
+
+void servo(String data)
+{
     String[] mensajeDatos1;
     
-    mensajeDatos1 = split(msnUnidoArduino,',');
+    mensajeDatos1 = split(data,',');
     
     //si la cantidad de parametros son correctos  
     if(mensajeDatos1.length == 5)
@@ -1018,7 +1192,6 @@ void servo()
     }
 }
 
-
 void enviarArduinoSameTime(String timeSend)
 {     
   String[] mensajeTimeSendCompleto;  
@@ -1044,8 +1217,8 @@ void enviarArduinoSameTime(String timeSend)
   } 
   
   
-  //totalBytes-1 porque siempre envia un cero a arduino al final del arreglo
-  if(mensajeTimeSend.length == (totalBytes-1) && mensajeTimeSend.length == mensajeTimePrendido.length)
+  
+  if(mensajeTimeSend.length == (totalBytes) && mensajeTimeSend.length == mensajeTimePrendido.length)
   {
     if(mensajeTimeSend.length >= 1)
     {
@@ -1078,7 +1251,16 @@ void enviarArduinoSameTime(String timeSend)
   }
   else
   {
-    print("la cantidad de variables de tiempo no cerresponde a la cantidad de pines a activar"); 
+    println("la cantidad de variables de tiempo no corresponde a la cantidad de pines a activar"); 
+    println("parametros iniciales "+ mensajeTimeSend.length);
+    println("parametros finales "+ mensajeTimePrendido.length);
+    println("cantidad de pines " + (totalBytes));
+    println("buff " + msnUnidoArduino);
+    
+    /*for (int i = 0; i<datoSend.length; i++)
+    {
+      println(datoSend[i]); 
+    }*/
   }  
 }
 
@@ -1114,25 +1296,25 @@ void enviarArduinoTimeStart(String timeSend)
       }
     }
    
-
-    if(empezar3==true && mensajeTimePrendido.length == (totalBytes-1))
+    if(empezar3==true && mensajeTimePrendido.length == (totalBytes))
     {    
       tiempoEmpezar = (((int(mensajeTimeSend[0])*1000)-(millis()-tiempoReiniciar3))/1000)+tiempoFlechas;
       
       if(tiempoEmpezar < 0)
       {       
         for(int j=0; j<mensajeTimePrendido.length; j++)
-        {  
+        {      
           //los prende todos
           arduino.digitalWrite(datoSend[j], Arduino.HIGH);             
           
           //corre el tiempo de prendido de cada pin
           tiempoPrendido[j] = ((int(mensajeTimePrendido[j])*1000)-(millis()-tiempoReiniciarV2[j]))/1000;
-        
+                   
           if(tiempoPrendido[j] < 0)
           {
             arduino.digitalWrite(datoSend[j], Arduino.LOW); 
           }
+          
           //apenas acabe el tiempo del pin con mayorTiempoPrendido entonces reinicia el tiempo de todo para que prenda
           if(tiempoPrendido[j] < 0 && j == idMayor)
           {
@@ -1150,7 +1332,15 @@ void enviarArduinoTimeStart(String timeSend)
     } 
     else
     {
-      println("la cantidad de variables de tiempo no cerresponde a la cantidad de pines a activar"); 
+      println("la cantidad de variables de tiempo no corresponde a la cantidad de pines a activar");
+      println("parametros finales "+ mensajeTimePrendido.length);
+      println("cantidad de pines " + (totalBytes));
+      println("buff " + msnUnidoArduino);
+      
+      for (int i = 0; i<datoSend.length; i++)
+      {
+        println(datoSend[i]); 
+      }
     }
   }
   else
@@ -1160,70 +1350,26 @@ void enviarArduinoTimeStart(String timeSend)
 }
 
 
-  
-void mouseMoved() 
+void oscEvent(OscMessage msn)
 {
-    if(mouseY < (height/2)-60 && mouseY > 0)
-    {
-      float mouseNormX = mouseX * invWidth;
-      float mouseNormY = mouseY * invHeight;
-      float mouseVelX = (mouseX - pmouseX) * invWidth;
-      float mouseVelY = (mouseY - pmouseY) * invHeight;
-  
-      msaFluids.addForce(mouseNormX, mouseNormY, mouseVelX, mouseVelY);
-    } 
-    
-    if(sendComunicacionMouse == true)
-    {
-      //crea un mensaje osc
-      OscMessage myMessage1 = new OscMessage("/comunicacionMouse");
-      
-      myMessage1.add(mouseX);
-      myMessage1.add(mouseY);
-        
-      //envia el mensaje osc
-      oscP5.send(myMessage1, dosisConection);  
-    }
-    
-    if(sendComunicacionMouse2 == true)
-    {
-      //crea un mensaje osc
-      OscMessage myMessage2 = new OscMessage("/comunicacionMouse2");
-      
-      myMessage2.add(mouseX);
-      myMessage2.add(mouseY);
-      myMessage2.add(pmouseX);
-      myMessage2.add(pmouseY);
-        
-      //envia el mensaje osc
-      oscP5.send(myMessage2, dosisConection);  
-    }
-    
-    if(sendComunicacionMouseSC == true)
-    {
-      //cada medio segundo envia el mensaje a super collider
-      if (millis() - tiempoInicioSC > tiempoEsperaSC) 
-      {
-        if(enviaMsn == true)
-        {
-          //crea un mensaje osc
-          OscMessage myMessage3 = new OscMessage("/DosisComunicacionSC");
-          
-          myMessage3.add(mouseX);
-          myMessage3.add(mouseY);
-            
-          //envia el mensaje osc a supercollider
-          oscP5.send(myMessage3, superColliderConection);  
-          
-          //apenas envie el mensaje deje de enviar hasta que pase el tiempo para volver a enviar el mensaje
-          enviaMsn=false;
-        }    
-        tiempoInicioSC = millis();
-      }
-      else
-      {
-         enviaMsn = true;
-      }  
-    }
-   
+   if(msn.checkAddrPattern("/scComunicacionDosis")==true)
+   {
+     datoSC = msn.get(0).intValue();
+     println("recibido por SC: "+datoSC);
+     arduino.digitalWrite(datoSC, Arduino.HIGH);
+     tiempoInicio = millis();
+     enviarDatos5=true;
+     return;
+   }
 }
+
+void SuperColliderToArduino()
+{
+  println(millis() - tiempoInicio);
+  if (millis() - tiempoInicio > tiempoEspera)
+  {
+     arduino.digitalWrite(datoSC, Arduino.LOW);
+     enviarDatos5=false;
+  }
+}
+  

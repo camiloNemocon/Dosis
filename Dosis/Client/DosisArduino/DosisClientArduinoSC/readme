@@ -1,11 +1,18 @@
-To use Arduino with Dosis Interface, you need to typeWriting
+To use Arduino with Dosis Interface, open code and modify the port that you connect Arduino
+int portArduino = 0; 
 
-onceArduino() => to send data to Arduino, and Arduino once turn on the pins that you typeWitre after you put this code. 
+This variable is used in
+arduino = new Arduino(this, Arduino.list()[portArduino], 57600);
+  
+Run DosisClientArduino and typeWriting on interface:
 
-loopArduino() => send repeatedly data to Arduino, and Arduino turn on the pins that you typeWitre after you put this code.
+OnceArduino() => to send data to Arduino, and Arduino once turn on the pins that you typeWitre after you put this code. 
 
-pararLoopArduino() => stop sending data to Arduino.
+LoopArduino() => send repeatedly data to Arduino, and Arduino turn on the pins that you typeWitre after you put this code.
 
+PararArduino() => stop sending data to Arduino.
+
+Teclado() => turn on the pins that ehr user typewrite on the keyboard
 
 To use Relay with Dosis Interface, you need conect the positive wire in C (Common Pin) and in NC (normally connected) into relay
 
