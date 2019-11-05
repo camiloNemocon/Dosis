@@ -371,6 +371,12 @@ void enviarArduino()
       arduino.analogWrite( datoSend[contadorBytes-1], 0 );
     }
     
+    if(contadorBytes == 0)
+    {
+      arduino.digitalWrite(datoSend[datoSend.length-1], Arduino.LOW);  
+      arduino.analogWrite( datoSend[datoSend.length-1], 0 );
+    }
+    
     println(datoSend[contadorBytes]);
        
     contadorBytes++;
