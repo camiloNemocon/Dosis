@@ -392,6 +392,8 @@ void enviarArduino()
   
   if(contadorBytes==0 && enviarDatosEnter == true)
   {  
+    arduino.digitalWrite(datoSend[datoSend.length-1], Arduino.LOW);  
+    arduino.analogWrite( datoSend[datoSend.length-1], 0 );
     enviarDatos = false;
     activarArduino = false;
     enviarDatosEnter = false;
@@ -609,14 +611,14 @@ void instrucciones()
   else if(palabraInstruccion == 16)
   {
     textSize(22);
-    text("ServoArduino() outPin,ptoIn,estado,ang,tiempo",10,620);
+    text("ServoArduino() outPin,AngIn,estado,AngFin,tiempo",10,620);
     textSize(14);
     text("Ej: ServoArduino()          2,1,0,70,0 ",10,640);
     text("int outPin => pin al que esta conectado el servo",10,660);
-    text("int ptoIn => donde empieza el giro (usado en el estado: 1,2,3)",10,680);
+    text("int AngIn => donde empieza el giro (usado en el estado: 1,2,3)",10,680);
     text("int estado => estados desde el 0 hasta el 5",10,700);
-    text("int ang => donde termina o el angulo de giro (usado en el estado: 0,1,2,3,4)",10,720);
-    text("int tiempo => (usado en el estado: 2,3)",10,740);
+    text("int AngFin => donde termina o el angulo de giro (usado en el estado: 0,1,2,3,4)",10,720);
+    text("int tiempo => (usado en el estado: 3)",10,740);
     textSize(25);
     text("         ",10,750);
   }
@@ -625,11 +627,11 @@ void instrucciones()
     textSize(20);
     text("ServoArduino()",10,620);
     textSize(14);
-    text("estado=0 (giro desde 0° hasta ang, luego retorna a 0° rápido)",10,640);
-    text("estado=1 (giro desde ptoIn hasta ang, luego retorna a ptoIn con el mismo tiempo de giro)",10,660);
-    text("estado=2 (giro desde ptoIn hasta 180°, donde el giro se realiza con el ang dado, luego retorna rápido y espera TimeWait para empezar)",10,680);
-    text("estado=3 (giro desde ptoIn hasta ang rápidamente, luego espera TimeWait para retornar hasta ptoIn rápidamente)",10,700);
-    text("estado=4 (giro al ang)",10,720);
+    text("estado=0 (giro desde 0° hasta AngFin, luego retorna a 0° rápido)",10,640);
+    text("estado=1 (giro desde AngIn hasta AngFin, retorna a AngIn con el mismo tiempo de giro)",10,660);
+    text("estado=2 (giro desde AngIn hasta 180°, donde el giro se realiza con el AngFin dado, luego retorna rápido y espera TimeWait para empezar)",10,680);
+    text("estado=3 (giro desde AngIn hasta AngFin rápidamente, luego espera Tiempo y vuelve a AngIn)",10,700);
+    text("estado=4 (giro al AngFin)",10,720);
     text("estado=5 (giro a 0°)",10,740);
     textSize(25);
     text("         ",10,770);
@@ -962,7 +964,17 @@ void stopArduino()
   
   activarArduino = false;
   activarArduino2 = false;
-  enviarDatos = false;
+  
+  if(enviarDatos == true)
+  {
+    for(int i=0; i<datoSend.length; i++)
+    {
+      arduino.digitalWrite(datoSend[i], Arduino.LOW);  
+      arduino.analogWrite( datoSend[i], 0 );
+    } 
+    enviarDatos = false;
+  }
+  
   enviarDatos2 = false;
   enviarDatos3 = false;
   enviarDatos4 = false;
