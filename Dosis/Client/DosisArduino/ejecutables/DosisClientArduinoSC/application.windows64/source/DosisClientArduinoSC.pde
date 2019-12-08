@@ -140,6 +140,9 @@ int contadorBytes = 0;
   
   //genera el envio de datos a Arduino para que prendan los pines que recive de SuperCollider
   boolean enviarDatos5 = true;
+  
+  //envia el dato a superCollider una sola vez
+  boolean unaVezEnviado = false;
  
 //------------------------Setup-------------------
 void setup() 
@@ -378,6 +381,14 @@ void enviarArduino()
     }
     
     println(datoSend[contadorBytes]);
+    
+    OscMessage myMessage3 = new OscMessage("/DosisComunicacionSC");
+    
+    myMessage3.add(datoSend[contadorBytes]);
+      
+    //envia el mensaje osc a supercollider
+    oscP5.send(myMessage3, superColliderConection);
+    
        
     contadorBytes++;
     
@@ -403,6 +414,18 @@ void enviarArduino()
 
 void prenderArduino()
 {
+  if(unaVezEnviado == false)
+  {
+    //crea un mensaje osc
+    OscMessage myMessage3 = new OscMessage("/DosisComunicacionSC");
+    
+    myMessage3.add(1);
+      
+    //envia el mensaje osc a supercollider
+    oscP5.send(myMessage3, superColliderConection);
+    unaVezEnviado = true;
+  }
+  
   for(int i=0; i<prendidos.size(); i++)
   {    
     arduino.digitalWrite(prendidos.get(i), Arduino.HIGH);
@@ -411,6 +434,14 @@ void prenderArduino()
 
 void apagarArduino()
 {
+    //crea un mensaje osc
+    OscMessage myMessage3 = new OscMessage("/DosisComunicacionSC");
+    
+    myMessage3.add(0);
+      
+    //envia el mensaje osc a supercollider
+    oscP5.send(myMessage3, superColliderConection);  
+     
   for(int i=0; i<apagados.size(); i++)
   {
     arduino.digitalWrite(apagados.get(i), Arduino.LOW);
@@ -526,11 +557,21 @@ void keyPressed()
           buff2=buff2+k;
         }      
       }
-      else
+      else 
       {       
-        arduino.digitalWrite(int(TeclaLive), Arduino.HIGH);   
+        arduino.digitalWrite(int(TeclaLive), Arduino.HIGH);  
+        
+        //crea un mensaje osc
+        OscMessage myMessage3 = new OscMessage("/DosisComunicacionSC");
+        
+        myMessage3.add(1);
+          
+        //envia el mensaje osc a supercollider
+        oscP5.send(myMessage3, superColliderConection);  
+        
       }
         
+        //--------
       break;
     }
 }
@@ -691,6 +732,14 @@ void keyReleased()
 {
   if(tecladoLive == true)
   {
+    //crea un mensaje osc
+    OscMessage myMessage3 = new OscMessage("/DosisComunicacionSC");
+    
+    myMessage3.add(0);
+      
+    //envia el mensaje osc a supercollider
+    oscP5.send(myMessage3, superColliderConection);  
+    
     arduino.digitalWrite(int(TeclaLive), Arduino.LOW);  
   }
   
@@ -774,6 +823,7 @@ void keyReleased()
       buff = "";
       buff1 = "";
       buff2 = "";
+      unaVezEnviado = false;
       tempSendParameter = 5;
       datosArduino1(tempSendParameter);  
       //timeSend="";
@@ -785,6 +835,7 @@ void keyReleased()
       buff = "";
       buff1 = "";
       buff2 = "";
+      unaVezEnviado = false;
       tempSendParameter = 6;
       datosArduino1(tempSendParameter);  
       //timeSend="";

@@ -66,6 +66,15 @@ OSCdef('starlistener',
 	},"/DosisComunicacionSC");
 )
 
+(
+OSCdef('starlistener',
+	{
+        arg msg, time, addr, port;
+		Synth('tone',[\gate,msg[1]] );
+		msg[1].postln;
+	},"/DosisComunicacionSC");
+)
+
 
 b = NetAddr.new("localhost",12000);
 b.sendMsg("/scComunicacionDosis", 2);

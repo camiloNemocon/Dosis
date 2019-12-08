@@ -1339,6 +1339,8 @@ class ServoDosis
   //int tEspera => tiempo en milisegundos en que hace cada movimiento del giro cuando se usa el estado 2 y 3
   int tEspera;
   int tInicio = 0;
+  
+  int contador = 0;
 
   //ServoDosis(int outputPin)
   ServoDosis(int outputPinT, int puntoInicioT, int estadoT, int anguloT, int tEsperaT)
@@ -1354,10 +1356,10 @@ class ServoDosis
       println("El punto de inicio debe ser un numero menor a 180");
     }
     
-    if(estadoT > 5)
+    if(estadoT > 6)
     {
       puntoInicioT = 1; 
-      println("El estado va  desde 0 hasta 5, NO puede ser un número mayor a 5");
+      println("El estado va  desde 0 hasta 6, NO puede ser un número mayor a 6");
     }   
     
     outputPin = outputPinT;
@@ -1513,6 +1515,51 @@ class ServoDosis
     if (estado == 5)
     {
       puntoInicio = 0;
+    }
+    
+    // va desde el punto de inicio hasta el angulo y se devuelve el mismo angulo para devolverce para el tiempo que se le determine, pero solo lo hace una vez
+    if (estado == 6)
+    {
+      //println(puntoInicio);
+      int ang = angulo-puntoInicioBK;
+      
+      if(continuarEstado3 == true)
+      {
+          //me saca del estado para que solo lo haga una vez 
+          if(contador == 1)
+          {
+            estado = 7;
+          }
+          if (puntoInicio < ang)
+          {
+              puntoInicio += ang;            
+          } 
+          else
+          {
+            if (millis() - tInicio > tEspera) 
+            {
+               continuarEstado3 = false;     
+               tInicio = millis();
+            }
+          }        
+      }
+      else
+      {
+        if (puntoInicio > puntoInicioBK)
+        {
+          puntoInicio -= ang;
+        }
+        else
+        {
+          if (millis() - tInicio > tEspera) 
+          {
+            tInicio = millis();
+            continuarEstado3 = true;   
+            contador = 1;
+          }
+          
+        }
+      }      
     }
 
     arduino.servoWrite(outputPin, constrain(puntoInicio, 0, 180));
