@@ -143,6 +143,25 @@ int contadorBytes = 0;
   
   //envia el dato a superCollider una sola vez
   boolean unaVezEnviado = false;
+  
+  //escucha los mensajes de osc de SC para empezar a mover el servo con cada mensaje
+  boolean listenerSCservo = false;
+  
+  //guarda el buff o codigo escrito por el usuario para pasarlo al servo cada que le llega el compas de SC
+  String ArgumentServoSC = "";
+  
+  //escucha los mensajes de osc de SC para prender los pines con cada mensaje
+  boolean listenerSCbeat = false;
+  
+  //guarda el buff o codigo escrito por el usuario para pasarlo al servo cada que le llega el compas de SC
+  String ArgumentBeatSC = "";
+  
+  int tiempoBeat = 0;
+  int tiempoOnBeat = 0;
+  boolean enviarDatos6 = false;
+  int TiempoPrendidosBeat = 0;
+  String[] mensajePinesOn;  
+
  
 //------------------------Setup-------------------
 void setup() 
@@ -309,6 +328,23 @@ void draw()
     SuperColliderToArduino();
   }
   
+  if(enviarDatos6==true)
+  {
+    tiempoOnBeat = ((millis()-tiempoBeat)/1000);  
+    //println(tiempoOnBeat);
+    
+    if(mensajePinesOn.length > 0)
+    {      
+      if(tiempoOnBeat == TiempoPrendidosBeat)
+      {
+        for(int i=0; i<mensajePinesOn.length; i++)
+        {
+          arduino.digitalWrite(int(mensajePinesOn[i]), Arduino.LOW);
+        }            
+      }
+    }
+  }
+    
   if(sendComunicacionMouseSC == true)
   {
     //cada medio segundo envia el mensaje a super collider
@@ -724,6 +760,14 @@ void instrucciones()
   {
     textSize(25);
     text("superColliderMouse() =>envia la pos mouse (x,y)",10,630);
+    
+    text("BeatArduino() => Beat SC prende pines",10,680);    
+    textSize(16);
+    text("Ej: BeatArduino()      2,4|1      (pines)|tiempo prendido",10,700);
+    
+    textSize(25);
+    text("PararBeat() => Para BeatArduino()",10,730);
+    
   }
   
 }
@@ -763,7 +807,28 @@ void keyReleased()
       OscMessage myMessage = new OscMessage("/comunicación");
       myMessage.add(buff);
       oscP5.send(myMessage,dosisConection);
-    }    
+    }
+    
+    if(buff.equals("PararBeat()"))
+    {
+      enviarDatos6 = false;
+      listenerSCbeat = false; 
+    }
+    
+    if(buff.equals("BeatArduino()"))
+    {  
+      if(tecladoLive == true)
+      {
+        tecladoLive = false;  
+      }
+      
+      buff = "";
+      buff1 = "";
+      buff2 = "";
+      tempSendParameter = 7;
+      datosArduino1(tempSendParameter);  
+   //   timeSend="";      
+    }
     
     if(buff.equals("PasoArduino()"))
     {  
@@ -775,7 +840,7 @@ void keyReleased()
       buff = "";
       buff1 = "";
       buff2 = "";
-      tempSendParameter = 4;
+      tempSendParameter = 7;
       datosArduino1(tempSendParameter);  
    //   timeSend="";      
     }
@@ -1037,6 +1102,10 @@ void stopArduino()
   servoActivoPin12 = false;
   servoActivoPin13 = false;  
   
+  enviarDatos6 = false;     
+  listenerSCbeat = false;
+  listenerSCservo = false;
+  
   
   for (int i = 0; i <= 13; i++)
   {
@@ -1100,10 +1169,18 @@ void datosArduino1(int sendTime)
         apagarArduino();
       }
     }
+    if(sendTime==7)
+    {
+      listenerSCbeat = true;
+      ArgumentBeatSC = buff2;
+    }
   }
     
   activarArduino2 = true;  
 }
+
+
+
 
 void datosArduino(int sendTime)
 { 
@@ -1217,12 +1294,23 @@ void MotorpasoApaso(String data)
 void servo(String data)
 {
     String[] mensajeDatos1;
-    
+        
     mensajeDatos1 = split(data,',');
     
     //si la cantidad de parametros son correctos  
     if(mensajeDatos1.length == 5)
     {
+      if(int(mensajeDatos1[2])==7)
+      {    
+        ArgumentServoSC = data;
+        listenerSCservo = true;
+      }
+      else
+      {
+        listenerSCservo = false;
+      }    
+      
+      
       if(int(mensajeDatos1[0])==2)
       {        
         servoPin2 = new ServoDosis(int(mensajeDatos1[0]),int(mensajeDatos1[1]),int(mensajeDatos1[2]),int(mensajeDatos1[3]),int(mensajeDatos1[4]));   
@@ -1418,6 +1506,34 @@ void enviarArduinoTimeStart(String timeSend)
   }
 }
 
+void OnBeat(String data)
+{    
+    String[] mensajeDatos1;
+  
+    mensajeDatos1 = split(data,'|');
+     
+    mensajePinesOn = split(mensajeDatos1[0],','); 
+    
+    String TiempoOn = mensajeDatos1[1];
+    TiempoPrendidosBeat = int(TiempoOn);
+        
+    if(TiempoPrendidosBeat == 0)
+    {
+      println("no esta bien el parametro del tiempo");
+    }
+    else
+    {
+      if(mensajePinesOn.length > 0)
+      {      
+            for(int i=0; i<mensajePinesOn.length; i++)
+            {
+              arduino.digitalWrite(int(mensajePinesOn[i]), Arduino.HIGH);
+            }           
+        }     
+      }   
+}
+
+        
 
 void oscEvent(OscMessage msn)
 {
@@ -1428,7 +1544,36 @@ void oscEvent(OscMessage msn)
      arduino.digitalWrite(datoSC, Arduino.HIGH);
      tiempoInicio = millis();
      enviarDatos5=true;
+      
      return;
+   }
+   
+   if(listenerSCservo == true)
+   {
+     if(msn.checkAddrPattern("/scComunicacionDosisCompas")==true)
+     {
+       datoSC = msn.get(0).intValue();
+       println("recibido por SC: "+datoSC);
+       
+       servo(ArgumentServoSC);       
+              
+       return;
+     }
+   }
+   
+   if(listenerSCbeat == true)
+   {
+     if(msn.checkAddrPattern("/scComunicacionDosisBeat")==true)
+     {
+       datoSC = msn.get(0).intValue();
+       println("recibido por SC: "+datoSC);
+       
+       tiempoBeat = millis();
+       enviarDatos6 = true;
+       OnBeat(ArgumentBeatSC);
+             
+       return;
+     }
    }
 }
 

@@ -166,6 +166,25 @@ int contadorBytes = 0;
   
   //envia el dato a superCollider una sola vez
   boolean unaVezEnviado = false;
+  
+  //escucha los mensajes de osc de SC para empezar a mover el servo con cada mensaje
+  boolean listenerSCservo = false;
+  
+  //guarda el buff o codigo escrito por el usuario para pasarlo al servo cada que le llega el compas de SC
+  String ArgumentServoSC = "";
+  
+  //escucha los mensajes de osc de SC para prender los pines con cada mensaje
+  boolean listenerSCbeat = false;
+  
+  //guarda el buff o codigo escrito por el usuario para pasarlo al servo cada que le llega el compas de SC
+  String ArgumentBeatSC = "";
+  
+  int tiempoBeat = 0;
+  int tiempoOnBeat = 0;
+  boolean enviarDatos6 = false;
+  int TiempoPrendidosBeat = 0;
+  String[] mensajePinesOn;  
+
  
 //------------------------Setup-------------------
 public void setup() 
@@ -332,6 +351,23 @@ public void draw()
     SuperColliderToArduino();
   }
   
+  if(enviarDatos6==true)
+  {
+    tiempoOnBeat = ((millis()-tiempoBeat)/1000);  
+    //println(tiempoOnBeat);
+    
+    if(mensajePinesOn.length > 0)
+    {      
+      if(tiempoOnBeat == TiempoPrendidosBeat)
+      {
+        for(int i=0; i<mensajePinesOn.length; i++)
+        {
+          arduino.digitalWrite(PApplet.parseInt(mensajePinesOn[i]), Arduino.LOW);
+        }            
+      }
+    }
+  }
+    
   if(sendComunicacionMouseSC == true)
   {
     //cada medio segundo envia el mensaje a super collider
@@ -747,6 +783,14 @@ public void instrucciones()
   {
     textSize(25);
     text("superColliderMouse() =>envia la pos mouse (x,y)",10,630);
+    
+    text("BeatArduino() => Beat SC prende pines",10,680);    
+    textSize(16);
+    text("Ej: BeatArduino()      2,4|1      (pines)|tiempo prendido",10,700);
+    
+    textSize(25);
+    text("PararBeat() => Para BeatArduino()",10,730);
+    
   }
   
 }
@@ -786,7 +830,28 @@ public void keyReleased()
       OscMessage myMessage = new OscMessage("/comunicación");
       myMessage.add(buff);
       oscP5.send(myMessage,dosisConection);
-    }    
+    }
+    
+    if(buff.equals("PararBeat()"))
+    {
+      enviarDatos6 = false;
+      listenerSCbeat = false; 
+    }
+    
+    if(buff.equals("BeatArduino()"))
+    {  
+      if(tecladoLive == true)
+      {
+        tecladoLive = false;  
+      }
+      
+      buff = "";
+      buff1 = "";
+      buff2 = "";
+      tempSendParameter = 7;
+      datosArduino1(tempSendParameter);  
+   //   timeSend="";      
+    }
     
     if(buff.equals("PasoArduino()"))
     {  
@@ -798,7 +863,7 @@ public void keyReleased()
       buff = "";
       buff1 = "";
       buff2 = "";
-      tempSendParameter = 4;
+      tempSendParameter = 7;
       datosArduino1(tempSendParameter);  
    //   timeSend="";      
     }
@@ -1060,6 +1125,10 @@ public void stopArduino()
   servoActivoPin12 = false;
   servoActivoPin13 = false;  
   
+  enviarDatos6 = false;     
+  listenerSCbeat = false;
+  listenerSCservo = false;
+  
   
   for (int i = 0; i <= 13; i++)
   {
@@ -1123,10 +1192,18 @@ public void datosArduino1(int sendTime)
         apagarArduino();
       }
     }
+    if(sendTime==7)
+    {
+      listenerSCbeat = true;
+      ArgumentBeatSC = buff2;
+    }
   }
     
   activarArduino2 = true;  
 }
+
+
+
 
 public void datosArduino(int sendTime)
 { 
@@ -1240,12 +1317,23 @@ public void MotorpasoApaso(String data)
 public void servo(String data)
 {
     String[] mensajeDatos1;
-    
+        
     mensajeDatos1 = split(data,',');
     
     //si la cantidad de parametros son correctos  
     if(mensajeDatos1.length == 5)
     {
+      if(PApplet.parseInt(mensajeDatos1[2])==7)
+      {    
+        ArgumentServoSC = data;
+        listenerSCservo = true;
+      }
+      else
+      {
+        listenerSCservo = false;
+      }    
+      
+      
       if(PApplet.parseInt(mensajeDatos1[0])==2)
       {        
         servoPin2 = new ServoDosis(PApplet.parseInt(mensajeDatos1[0]),PApplet.parseInt(mensajeDatos1[1]),PApplet.parseInt(mensajeDatos1[2]),PApplet.parseInt(mensajeDatos1[3]),PApplet.parseInt(mensajeDatos1[4]));   
@@ -1441,6 +1529,34 @@ public void enviarArduinoTimeStart(String timeSend)
   }
 }
 
+public void OnBeat(String data)
+{    
+    String[] mensajeDatos1;
+  
+    mensajeDatos1 = split(data,'|');
+     
+    mensajePinesOn = split(mensajeDatos1[0],','); 
+    
+    String TiempoOn = mensajeDatos1[1];
+    TiempoPrendidosBeat = PApplet.parseInt(TiempoOn);
+        
+    if(TiempoPrendidosBeat == 0)
+    {
+      println("no esta bien el parametro del tiempo");
+    }
+    else
+    {
+      if(mensajePinesOn.length > 0)
+      {      
+            for(int i=0; i<mensajePinesOn.length; i++)
+            {
+              arduino.digitalWrite(PApplet.parseInt(mensajePinesOn[i]), Arduino.HIGH);
+            }           
+        }     
+      }   
+}
+
+        
 
 public void oscEvent(OscMessage msn)
 {
@@ -1451,7 +1567,36 @@ public void oscEvent(OscMessage msn)
      arduino.digitalWrite(datoSC, Arduino.HIGH);
      tiempoInicio = millis();
      enviarDatos5=true;
+      
      return;
+   }
+   
+   if(listenerSCservo == true)
+   {
+     if(msn.checkAddrPattern("/scComunicacionDosisCompas")==true)
+     {
+       datoSC = msn.get(0).intValue();
+       println("recibido por SC: "+datoSC);
+       
+       servo(ArgumentServoSC);       
+              
+       return;
+     }
+   }
+   
+   if(listenerSCbeat == true)
+   {
+     if(msn.checkAddrPattern("/scComunicacionDosisBeat")==true)
+     {
+       datoSC = msn.get(0).intValue();
+       println("recibido por SC: "+datoSC);
+       
+       tiempoBeat = millis();
+       enviarDatos6 = true;
+       OnBeat(ArgumentBeatSC);
+             
+       return;
+     }
    }
 }
 
@@ -1501,6 +1646,8 @@ class ServoDosis
   //int tEspera => tiempo en milisegundos en que hace cada movimiento del giro cuando se usa el estado 2 y 3
   int tEspera;
   int tInicio = 0;
+  
+  int contador = 0;
 
   //ServoDosis(int outputPin)
   ServoDosis(int outputPinT, int puntoInicioT, int estadoT, int anguloT, int tEsperaT)
@@ -1516,10 +1663,10 @@ class ServoDosis
       println("El punto de inicio debe ser un numero menor a 180");
     }
     
-    if(estadoT > 5)
+    if(estadoT > 7)
     {
       puntoInicioT = 1; 
-      println("El estado va  desde 0 hasta 5, NO puede ser un número mayor a 5");
+      println("El estado va  desde 0 hasta 7, NO puede ser un número mayor a 7");
     }   
     
     outputPin = outputPinT;
@@ -1675,6 +1822,95 @@ class ServoDosis
     if (estado == 5)
     {
       puntoInicio = 0;
+    }
+    
+    // va desde el punto de inicio hasta el angulo y se devuelve el mismo angulo para devolverce para el tiempo que se le determine, pero solo lo hace una vez
+    if (estado == 6)
+    {
+      //println(puntoInicio);
+      int ang = angulo-puntoInicioBK;
+      
+      if(continuarEstado3 == true)
+      {
+          //me saca del estado para que solo lo haga una vez 
+          if(contador == 1)
+          {
+            estado = 8;
+          }
+          if (puntoInicio < ang)
+          {
+              puntoInicio += ang;            
+          } 
+          else
+          {
+            if (millis() - tInicio > tEspera) 
+            {
+               continuarEstado3 = false;     
+               tInicio = millis();
+            }
+          }        
+      }
+      else
+      {
+        if (puntoInicio > puntoInicioBK)
+        {
+          puntoInicio -= ang;
+        }
+        else
+        {
+          if (millis() - tInicio > tEspera) 
+          {
+            tInicio = millis();
+            continuarEstado3 = true;   
+            contador = 1;
+          }
+          
+        }
+      }      
+    }
+    
+    //genera el movimiento del servo cada que recibe una señal de super collider por osc
+    if (estado == 7)
+    {
+      //println(puntoInicio);
+      int ang = angulo-puntoInicioBK;
+      
+      if(continuarEstado3 == true)
+      {
+          //me saca del estado para que solo lo haga una vez 
+          if(contador == 1)
+          {
+            estado = 8;
+          }
+          if (puntoInicio < ang)
+          {
+              puntoInicio += ang;            
+          } 
+          else
+          {
+            if (millis() - tInicio > tEspera) 
+            {
+               continuarEstado3 = false;     
+               tInicio = millis();
+            }
+          }        
+      }
+      else
+      {
+        if (puntoInicio > puntoInicioBK)
+        {
+          puntoInicio -= ang;
+        }
+        else
+        {
+          if (millis() - tInicio > tEspera) 
+          {
+            tInicio = millis();
+            continuarEstado3 = true;   
+            contador = 1;
+          }          
+        }
+      }      
     }
 
     arduino.servoWrite(outputPin, constrain(puntoInicio, 0, 180));

@@ -77,5 +77,40 @@ OSCdef('starlistener',
 
 
 b = NetAddr.new("localhost",12000);
+
+c= TempoClock(20/60);
+(
+~funcion1={
+	var data;
+	data=((c.beats.floor)%c.beatsPerBar+1);
+	data.postln;
+	// ~postInfo.value;
+	// '-------'.postln;
+	b.sendMsg("/scComunicacionDosisBeat",data.asInteger);
+	1;
+};
+)
+
+c.schedAbs(c.nextBar, ~funcion1);
+
+(
+~funcion2={
+	var data;
+	data=((c.beats.floor)%c.beatsPerBar+1);
+	// data.postln;
+	// ~postInfo.value;
+	'-------'.postln;
+	b.sendMsg("/scComunicacionDosisCompas",data.asInteger);
+	c.beatsPerBar;
+};
+)
+
+c.schedAbs(c.nextBar, ~funcion2);
+
+c.stop;
+
+
+
 b.sendMsg("/scComunicacionDosis", 2);
+
 
